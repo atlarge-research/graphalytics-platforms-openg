@@ -22,15 +22,29 @@ if [ ! -f "$config/openg.properties" ]; then
 	exit 1
 fi
 
-# Get the first specification of hadoop.home
-openghome=$(grep -E "^openg.home[	 ]*[:=]" $config/openg.properties | sed 's/openg.home[\t ]*[:=][\t ]*\([^\t ]*\).*/\1/g' | head -n 1)
-if [ ! -d "$openghome/bin/" ]; then
-	echo "Invalid definition of openg.home: $opengphome" >&2
-	echo "Expecting both a \"bin\" and \"lib\" subdirectory." >&2
-	exit 1
-fi
-export LD_LIBRARY_PATH=$openghome/lib:$LD_LIBRARY_PATH
+# Get the first specification of openg.home
+OPENG_HOME=$(grep -E "^openg.home[	 ]*[:=]" $config/openg.properties | sed 's/openg.home[\t ]*[:=][\t ]*\([^\t ]*\).*/\1/g' | head -n 1)
 
 # Set the "platform" variable
 export platform="openg"
 
+# Build binaries
+if [ -z $openghome ]; then
+    openghome=`awk -F' *= *' '{ if ($1 == "openg.home") print $2 }' $config/openg.properties`
+fi
+
+if [ -z $openghome ]; then
+    echo "Error: home directory for OpenG not specified."
+    echo "Define the environment variable \$OPENG_HOME or modify openg.home in $config/openg.properties"
+    exit 1
+fi
+
+
+mkdir -p bin
+(cd bin && cmake -DCMAKE_BUILD_TYPE=Release ../src/ -DOPENG_HOME=$OPENG_HOME && make all VERBOSE=1)
+
+if [ $? -ne 0 ]
+then
+    echo "Compilation failed"
+    exit 1
+fi

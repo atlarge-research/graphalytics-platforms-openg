@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.tudelft.graphalytics.openg.algorithms.stats;
+package nl.tudelft.graphalytics.openg.algorithms.wcc;
 
 import nl.tudelft.graphalytics.openg.OpenGJob;
 import nl.tudelft.graphalytics.openg.config.JobConfiguration;
@@ -26,7 +26,7 @@ import org.apache.commons.exec.CommandLine;
  * @author Yong Guo
  * @author Tim Hegeman
  */
-public final class StatsJob extends OpenGJob {
+public final class WeaklyConnectedComponentsJob extends OpenGJob {
 
 	/**
 	 * Creates a new ConnectedComponentsJob object with all mandatory parameters specified.
@@ -35,7 +35,7 @@ public final class StatsJob extends OpenGJob {
 	 * @param graphInputPath   the path of the input graph
 	 * @param graphOutputPath  the path of the output graph
 	 */
-	public StatsJob(JobConfiguration jobConfiguration, String graphInputPath, String graphOutputPath) {
+	public WeaklyConnectedComponentsJob(JobConfiguration jobConfiguration, String graphInputPath, String graphOutputPath) {
 		super(jobConfiguration, graphInputPath, graphOutputPath);
 	}
 
@@ -45,9 +45,8 @@ public final class StatsJob extends OpenGJob {
 
 	@Override
 	protected String getExecutableName() {
-		return "tc";
+		return "wcc";
 	}
-
 
 	@Override
 	protected boolean usesEdgeProperties() {

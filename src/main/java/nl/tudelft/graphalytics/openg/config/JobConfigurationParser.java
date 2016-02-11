@@ -42,7 +42,7 @@ public final class JobConfigurationParser {
 	private JobConfiguration parse() throws InvalidConfigurationException {
 		// Load mandatory configuration properties
 		String opengHome = ConfigurationUtil.getString(opengConfig, OPENG_HOME_KEY);
-		String opengBinariesPath = Paths.get(opengHome, "bin").toString();
+		String opengBinariesPath = Paths.get("./bin").toString();
 		JobConfiguration jobConfiguration = new JobConfiguration(opengBinariesPath);
 
 		// Load optional configuration properties

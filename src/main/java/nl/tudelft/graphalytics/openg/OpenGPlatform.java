@@ -22,11 +22,14 @@ import nl.tudelft.graphalytics.configuration.ConfigurationUtil;
 import nl.tudelft.graphalytics.configuration.InvalidConfigurationException;
 import nl.tudelft.graphalytics.domain.*;
 import nl.tudelft.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
+import nl.tudelft.graphalytics.domain.algorithms.CommunityDetectionLPParameters;
 import nl.tudelft.graphalytics.domain.algorithms.PageRankParameters;
 import nl.tudelft.graphalytics.granula.GranulaAwarePlatform;
 import nl.tudelft.graphalytics.openg.algorithms.bfs.BreadthFirstSearchJob;
-import nl.tudelft.graphalytics.openg.algorithms.conn.ConnectedComponentsJob;
-import nl.tudelft.graphalytics.openg.algorithms.stats.StatsJob;
+import nl.tudelft.graphalytics.openg.algorithms.cdlp.CommunityDetectionLPJob;
+import nl.tudelft.graphalytics.openg.algorithms.pr.PageRankJob;
+import nl.tudelft.graphalytics.openg.algorithms.wcc.WeaklyConnectedComponentsJob;
+import nl.tudelft.graphalytics.openg.algorithms.lcc.LocalClusteringCoefficientJob;
 import nl.tudelft.graphalytics.openg.config.JobConfiguration;
 import nl.tudelft.graphalytics.openg.config.JobConfigurationParser;
 import nl.tudelft.graphalytics.openg.reporting.logging.OpenGLogger;
@@ -58,6 +61,8 @@ public final class OpenGPlatform implements Platform, GranulaAwarePlatform {
 
 	public static final String OPENG_INTERMEDIATE_DIR_KEY = "openg.intermediate-dir";
 	public static final String OPENG_OUTPUT_DIR_KEY = "openg.output-dir";
+
+	public static final String BINARY_DIRECTORY = "./bin/";
 
 	private Configuration opengConfig;
 	private JobConfiguration jobConfiguration;
@@ -119,7 +124,7 @@ public final class OpenGPlatform implements Platform, GranulaAwarePlatform {
 
 	@Override
 	public void uploadGraph(Graph graph) throws Exception {
-		LOG.info("Preprocessing graph \"{}\". Currently disabled (not needed).", graph.getName());
+		LOG.info("Preprocessing graph \"{}\".", graph.getName());
 
 		//TODO check if this is true.
 		if (graph.getNumberOfVertices() > Integer.MAX_VALUE) {
@@ -128,7 +133,9 @@ public final class OpenGPlatform implements Platform, GranulaAwarePlatform {
 
 		String graphOutputPath = Paths.get(intermediateGraphDirectory, graph.getName()).toString();
 		currentGraphPath = graphOutputPath;
-		//TODO impl the acutal graph translation.
+
+		currentGraphVertexIdTranslation = GraphParser.parseGraphAndWriteAdjacencyList(graph.getVertexFilePath(), graph.getEdgeFilePath(),
+				graphOutputPath, graph.getGraphFormat().isDirected(), (int)graph.getNumberOfVertices());
 	}
 
 	@Override
@@ -143,13 +150,23 @@ public final class OpenGPlatform implements Platform, GranulaAwarePlatform {
 		switch (algorithm) {
 			case BFS:
 				long sourceVertex = ((BreadthFirstSearchParameters)parameters).getSourceVertex();
+				sourceVertex = currentGraphVertexIdTranslation.get(sourceVertex);
 				job = new BreadthFirstSearchJob(sourceVertex, jobConfiguration, currentGraphPath, outputGraphPath);
 				break;
-			case CONN:
-				job = new ConnectedComponentsJob(jobConfiguration, currentGraphPath, outputGraphPath);
+			case CDLP:
+				long maxIteration = ((CommunityDetectionLPParameters)parameters).getMaxIterations();
+				job = new CommunityDetectionLPJob(maxIteration, jobConfiguration, currentGraphPath, outputGraphPath);
 				break;
-			case STATS:
-				job = new StatsJob(jobConfiguration, currentGraphPath, outputGraphPath);
+			case LCC:
+				job = new LocalClusteringCoefficientJob(jobConfiguration, currentGraphPath, outputGraphPath);
+				break;
+			case PR:
+				float dampingFactor = ((PageRankParameters)parameters).getDampingFactor();
+				long iteration = ((PageRankParameters)parameters).getNumberOfIterations();
+				job = new PageRankJob(iteration, dampingFactor, jobConfiguration, currentGraphPath, outputGraphPath);
+				break;
+			case WCC:
+				job = new WeaklyConnectedComponentsJob(jobConfiguration, currentGraphPath, outputGraphPath);
 				break;
 			default:
 				// TODO: Implement other algorithms

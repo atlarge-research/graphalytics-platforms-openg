@@ -13,44 +13,57 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.tudelft.graphalytics.openg.algorithms.conn;
+package nl.tudelft.graphalytics.openg.algorithms.pr;
 
 import nl.tudelft.graphalytics.openg.OpenGJob;
 import nl.tudelft.graphalytics.openg.config.JobConfiguration;
 import org.apache.commons.exec.CommandLine;
 
 /**
- * Connected components job implementation for OpenG. This class is responsible for formatting CC-specific
+ * Breadth-first search job implementation for OpenG. This class is responsible for formatting BFS-specific
  * arguments to be passed to the OpenG executable, and does not include the implementation of the algorithm.
  *
  * @author Yong Guo
  * @author Tim Hegeman
  */
-public final class ConnectedComponentsJob extends OpenGJob {
+public final class PageRankJob extends OpenGJob {
+
+	private final long iteration;
+	private final float dampingFactor;
 
 	/**
-	 * Creates a new ConnectedComponentsJob object with all mandatory parameters specified.
+	 * Creates a new BreadthFirstSearchJob object with all mandatory parameters specified.
 	 *
+	 * @param iteration     the ID of the source vertex
 	 * @param jobConfiguration the generic OpenG configuration to use for this job
-	 * @param graphInputPath   the path of the input graph
-	 * @param graphOutputPath  the path of the output graph
+	 * @param graphInputPath   the path to the input graph
+	 * @param graphOutputPath  the path to the output graph
 	 */
-	public ConnectedComponentsJob(JobConfiguration jobConfiguration, String graphInputPath, String graphOutputPath) {
+	public PageRankJob(long iteration, float dampingFactor, JobConfiguration jobConfiguration,
+					   String graphInputPath, String graphOutputPath) {
 		super(jobConfiguration, graphInputPath, graphOutputPath);
+		this.iteration = iteration;
+		this.dampingFactor = dampingFactor;
 	}
 
 	@Override
 	protected void appendAlgorithmParameters(CommandLine commandLine) {
+		commandLine.addArgument("--dampingfactor", false);
+		commandLine.addArgument(String.valueOf(dampingFactor), false);
+
+		commandLine.addArgument("--iteration", false);
+		commandLine.addArgument(String.valueOf(iteration), false);
+
 	}
 
 	@Override
 	protected String getExecutableName() {
-		return "connectedcomponent";
+		return "pr";
 	}
+
 
 	@Override
 	protected boolean usesEdgeProperties() {
 		return false;
 	}
-
 }
