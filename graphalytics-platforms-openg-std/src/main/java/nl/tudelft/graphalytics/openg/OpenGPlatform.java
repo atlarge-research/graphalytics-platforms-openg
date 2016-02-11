@@ -24,7 +24,6 @@ import nl.tudelft.graphalytics.domain.*;
 import nl.tudelft.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
 import nl.tudelft.graphalytics.domain.algorithms.CommunityDetectionLPParameters;
 import nl.tudelft.graphalytics.domain.algorithms.PageRankParameters;
-import nl.tudelft.graphalytics.granula.GranulaAwarePlatform;
 import nl.tudelft.graphalytics.openg.algorithms.bfs.BreadthFirstSearchJob;
 import nl.tudelft.graphalytics.openg.algorithms.cdlp.CommunityDetectionLPJob;
 import nl.tudelft.graphalytics.openg.algorithms.pr.PageRankJob;
@@ -32,9 +31,6 @@ import nl.tudelft.graphalytics.openg.algorithms.wcc.WeaklyConnectedComponentsJob
 import nl.tudelft.graphalytics.openg.algorithms.lcc.LocalClusteringCoefficientJob;
 import nl.tudelft.graphalytics.openg.config.JobConfiguration;
 import nl.tudelft.graphalytics.openg.config.JobConfigurationParser;
-import nl.tudelft.graphalytics.openg.reporting.logging.OpenGLogger;
-import nl.tudelft.pds.granula.modeller.model.job.JobModel;
-import nl.tudelft.pds.granula.modeller.openg.job.OpenG;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
@@ -52,9 +48,9 @@ import java.nio.file.Paths;
  * @author Yong Guo
  * @author Tim Hegeman
  */
-public final class OpenGPlatform implements Platform, GranulaAwarePlatform {
+public class OpenGPlatform implements Platform {
 
-	private static final Logger LOG = LogManager.getLogger();
+	protected static final Logger LOG = LogManager.getLogger();
 
 	public static final String PLATFORM_NAME = "openg";
 	public static final String PROPERTIES_FILENAME = PLATFORM_NAME + ".properties";
@@ -64,13 +60,13 @@ public final class OpenGPlatform implements Platform, GranulaAwarePlatform {
 
 	public static final String BINARY_DIRECTORY = "./bin/";
 
-	private Configuration opengConfig;
-	private JobConfiguration jobConfiguration;
-	private String intermediateGraphDirectory;
-	private String graphOutputDirectory;
+	protected Configuration opengConfig;
+	protected JobConfiguration jobConfiguration;
+	protected String intermediateGraphDirectory;
+	protected String graphOutputDirectory;
 
-	private String currentGraphPath;
-	private Long2LongMap currentGraphVertexIdTranslation;
+	protected String currentGraphPath;
+	protected Long2LongMap currentGraphVertexIdTranslation;
 
 	public OpenGPlatform() {
 		try {
@@ -82,7 +78,7 @@ public final class OpenGPlatform implements Platform, GranulaAwarePlatform {
 		}
 	}
 
-	private void loadConfiguration() throws InvalidConfigurationException {
+	protected void loadConfiguration() throws InvalidConfigurationException {
 		LOG.info("Parsing OpenG configuration file.");
 
 		// Load OpenG-specific configuration
@@ -104,7 +100,7 @@ public final class OpenGPlatform implements Platform, GranulaAwarePlatform {
 		ensureDirectoryExists(graphOutputDirectory, OPENG_OUTPUT_DIR_KEY);
 	}
 
-	private static void ensureDirectoryExists(String directory, String property) throws InvalidConfigurationException {
+	protected static void ensureDirectoryExists(String directory, String property) throws InvalidConfigurationException {
 		System.out.println(directory);
 		File directoryFile = new File(directory);
 		if (directoryFile.exists()) {
@@ -204,22 +200,4 @@ public final class OpenGPlatform implements Platform, GranulaAwarePlatform {
 		return NestedConfiguration.fromExternalConfiguration(opengConfig, PROPERTIES_FILENAME);
 	}
 
-	@Override
-	public void setBenchmarkLogDirectory(Path logDirectory) {
-			OpenGLogger.startPlatformLogging(logDirectory.resolve("OperationLog").resolve("driver.logs"));
-	}
-
-	@Override
-	public void finalizeBenchmarkLogs(Path logDirectory) {
-//			OpenGLogger.collectYarnLogs(logDirectory);
-			// TODO replace with collecting logs from openg
-//			OpenGLogger.collectUtilLog(null, null, 0, 0, logDirectory);
-			OpenGLogger.stopPlatformLogging();
-
-	}
-
-	@Override
-	public JobModel getGranulaModel() {
-		return new OpenG();
-	}
 }

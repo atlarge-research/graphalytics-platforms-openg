@@ -28,6 +28,17 @@ OPENG_HOME=$(grep -E "^openg.home[	 ]*[:=]" $config/openg.properties | sed 's/op
 # Set the "platform" variable
 export platform="openg"
 
+# Set Library jar
+export LIBRARY_JAR=`ls lib/graphalytics-*std*.jar`
+GRANULA_ENABLED=$(grep -E "^benchmark.run.granula.enabled[	 ]*[:=]" $config/granula.properties | sed 's/benchmark.run.granula.enabled[\t ]*[:=][\t ]*\([^\t ]*\).*/\1/g' | head -n 1)
+if [ "$GRANULA_ENABLED" = "true" ] ; then
+ if ! find lib -name "graphalytics-*granula*.jar" | grep -q '.'; then
+    echo "Granula cannot be enabled due to missing library jar" >&2
+ else
+    export LIBRARY_JAR=`ls lib/graphalytics-*granula*.jar`
+ fi
+fi
+
 # Build binaries
 if [ -z $openghome ]; then
     openghome=`awk -F' *= *' '{ if ($1 == "openg.home") print $2 }' $config/openg.properties`
@@ -41,7 +52,7 @@ fi
 
 
 mkdir -p bin
-(cd bin && cmake -DCMAKE_BUILD_TYPE=Release ../src/ -DOPENG_HOME=$OPENG_HOME && make all VERBOSE=1)
+(cd bin && cmake -DCMAKE_BUILD_TYPE=Release ../src/main/c -DOPENG_HOME=$OPENG_HOME && make all VERBOSE=1)
 
 if [ $? -ne 0 ]
 then
