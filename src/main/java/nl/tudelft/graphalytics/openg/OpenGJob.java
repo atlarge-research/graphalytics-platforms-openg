@@ -101,12 +101,12 @@ public abstract class OpenGJob {
 
 	private void appendThreadingParameters(CommandLine commandLine) {
 
-		commandLine.addArgument("--threadnum", false);
-		commandLine.addArgument("1", false);
-
 		if (jobConfiguration.getNumberOfWorkerThreads() > 0) {
 			commandLine.addArgument("--threadnum", false);
 			commandLine.addArgument(String.valueOf(jobConfiguration.getNumberOfWorkerThreads()), false);
+		} else {
+			commandLine.addArgument("--threadnum", false);
+			commandLine.addArgument("1", false);
 		}
 	}
 
