@@ -12,8 +12,6 @@
 #include <algorithm>
 #include <unordered_set>
 #include <unordered_map>
-#include "../openG/openG.h"
-#include "../common/common.h"
 
 using namespace std;
 
@@ -197,6 +195,7 @@ int main(int argc, char * argv[])
     graph_t graph;
 
     cout<<"loading data... \n";
+
     t1 = timer::get_usec();
     string vfile = path + "/vertex.csv";
     string efile = path + "/edge.csv";
@@ -249,7 +248,7 @@ int main(int argc, char * argv[])
 #endif
 
 #ifdef ENABLE_OUTPUT
-    cout<<endl;
+    cout<<"\n";
     //output(graph);
 #endif
     cout<<"==================================================================\n";

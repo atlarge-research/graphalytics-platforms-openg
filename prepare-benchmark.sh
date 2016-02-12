@@ -24,6 +24,11 @@ fi
 
 # Get the first specification of openg.home
 OPENG_HOME=$(grep -E "^openg.home[	 ]*[:=]" $config/openg.properties | sed 's/openg.home[\t ]*[:=][\t ]*\([^\t ]*\).*/\1/g' | head -n 1)
+if [ -z $OPENG_HOME ]; then
+    echo "Error: home directory for OpenG not specified."
+    echo "Define the environment variable \$OPENG_HOME or modify openg.home in $config/openg.properties"
+    exit 1
+fi
 
 # Set the "platform" variable
 export platform="openg"
@@ -40,19 +45,14 @@ if [ "$GRANULA_ENABLED" = "true" ] ; then
 fi
 
 # Build binaries
-if [ -z $openghome ]; then
-    openghome=`awk -F' *= *' '{ if ($1 == "openg.home") print $2 }' $config/openg.properties`
+mkdir -p bin/standard
+(cd bin/standard && cmake -DCMAKE_BUILD_TYPE=Release ../../src/main/c/standard -DOPENG_HOME=$OPENG_HOME && make all VERBOSE=1)
+
+if [ "$GRANULA_ENABLED" = "true" ] ; then
+ mkdir -p bin/granula
+ (cd bin/granula && cmake -DCMAKE_BUILD_TYPE=Release ../../src/main/c/granula -DOPENG_HOME=$OPENG_HOME && make all VERBOSE=1)
 fi
 
-if [ -z $openghome ]; then
-    echo "Error: home directory for OpenG not specified."
-    echo "Define the environment variable \$OPENG_HOME or modify openg.home in $config/openg.properties"
-    exit 1
-fi
-
-
-mkdir -p bin
-(cd bin && cmake -DCMAKE_BUILD_TYPE=Release ../src/main/c -DOPENG_HOME=$OPENG_HOME && make all VERBOSE=1)
 
 if [ $? -ne 0 ]
 then

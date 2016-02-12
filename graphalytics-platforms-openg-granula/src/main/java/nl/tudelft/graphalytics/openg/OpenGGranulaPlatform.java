@@ -56,6 +56,7 @@ public final class OpenGGranulaPlatform extends OpenGPlatform implements Granula
 
 	public OpenGGranulaPlatform() {
 		super();
+		OPENG_BINARY_DIRECTORY = "./bin/granula";
 	}
 
 	@Override

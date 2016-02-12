@@ -39,6 +39,7 @@ public abstract class OpenGJob {
 	private static final Marker OPENG_OUTPUT_MARKER = MarkerManager.getMarker("OPENG-OUTPUT");
 
 	protected final JobConfiguration jobConfiguration;
+	private final String binaryPath;
 	private final String graphInputPath;
 	private final String graphOutputPath;
 
@@ -49,8 +50,9 @@ public abstract class OpenGJob {
 	 * @param graphInputPath   the path of the input graph
 	 * @param graphOutputPath  the path of the output graph
 	 */
-	public OpenGJob(JobConfiguration jobConfiguration, String graphInputPath, String graphOutputPath) {
+	public OpenGJob(JobConfiguration jobConfiguration, String binaryPath, String graphInputPath, String graphOutputPath) {
 		this.jobConfiguration = jobConfiguration;
+		this.binaryPath = binaryPath;
 		this.graphInputPath = graphInputPath;
 		this.graphOutputPath = graphOutputPath;
 	}
@@ -75,7 +77,7 @@ public abstract class OpenGJob {
 	}
 
 	protected CommandLine createCommandLineForExecutable() {
-		Path executablePath = Paths.get(jobConfiguration.getExecutableDirectory(), getExecutableName());
+		Path executablePath = Paths.get(binaryPath, getExecutableName());
 		return new CommandLine(executablePath.toFile());
 	}
 

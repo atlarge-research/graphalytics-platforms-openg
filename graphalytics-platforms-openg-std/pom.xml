@@ -5,6 +5,7 @@
 	<artifactId>graphalytics-platforms-openg-std</artifactId>
 	<version>0.1-SNAPSHOT</version>
 
+	<name>Graphalytics Platform OpenG - Standard</name>
 
 
 	<properties>

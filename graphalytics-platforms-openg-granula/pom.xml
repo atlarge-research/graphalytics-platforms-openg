@@ -5,6 +5,7 @@
 	<artifactId>graphalytics-platforms-openg-granula</artifactId>
 	<version>0.1-SNAPSHOT</version>
 
+	<name>Graphalytics Platform OpenG - WithGranula</name>
 
 
 	<properties>
@@ -39,7 +40,7 @@
 		</dependency>
 		<dependency>
 			<groupId>nl.tudelft.pds.granula</groupId>
-			<artifactId>openg-analyzer</artifactId>
+			<artifactId>granula-model-openg</artifactId>
 			<version>0.1.2</version>
 		</dependency>
 	</dependencies>

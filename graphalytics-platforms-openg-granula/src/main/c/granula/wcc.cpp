@@ -1,7 +1,7 @@
 //====== Graph Benchmark Suites ======//
-//======= Breadth-first Search =======//
+//======= Weakly Connected Component =======//
 //
-// Usage: ./bfs.exe --dataset <dataset path> --root <root vertex id>
+// Usage: ./wcc.exe --dataset <dataset path> --root <root vertex id>
 
 #include "common.h"
 #include "def.h"
@@ -10,9 +10,8 @@
 #include "openG.h"
 #include <queue>
 #include "omp.h"
-#include "../common/perf.h"
-#include "../common/common.h"
-#include "../openG/openG.h"
+#include <stdint.h>
+#include "operation.h"
 
 #ifdef SIM
 #include "SIM.h"
@@ -25,12 +24,8 @@ using namespace std;
 class vertex_property
 {
 public:
-    vertex_property():color(COLOR_WHITE),order(0),level(MY_INFINITY){}
-    vertex_property(uint8_t x):color(x),order(0),level(MY_INFINITY){}
-
-    uint8_t color;
-    uint64_t order;
-    uint64_t level;
+    vertex_property(){}
+    uint64_t root;
 };
 class edge_property
 {
@@ -48,7 +43,7 @@ typedef graph_t::edge_iterator      edge_iterator;
 //==============================================================//
 void arg_init(argument_parser & arg)
 {
-    arg.add_arg("root","0","root/starting vertex");
+
 }
 //==============================================================//
 
@@ -57,16 +52,22 @@ inline unsigned vertex_distributor(uint64_t vid, unsigned threadnum)
 {
     return vid%threadnum;
 }
-void parallel_bfs(graph_t& g, size_t root, unsigned threadnum, gBenchPerf_multi & perf, int perf_group)
+
+void parallel_init(graph_t& g, unsigned threadnum,
+                   vector<vector<uint64_t> >& global_input_tasks)
 {
-    // initializzation
-    vertex_iterator rootvit=g.find_vertex(root);
-    if (rootvit==g.vertices_end()) return;
+    global_input_tasks.resize(threadnum);
+    for (vertex_iterator vit=g.vertices_begin(); vit!=g.vertices_end(); vit++)
+    {
+        vit->property().root = vit->id();
+        global_input_tasks[vertex_distributor(vit->id(), threadnum)].push_back(vit->id());
 
-    rootvit->property().level = 0;
+    }
+}
 
-    vector<vector<uint64_t> > global_input_tasks(threadnum);
-    global_input_tasks[vertex_distributor(root, threadnum)].push_back(root);
+void parallel_wcc(graph_t &g, unsigned threadnum, vector<vector<uint64_t> > &global_input_tasks, gBenchPerf_multi &perf,
+                  int perf_group)
+{
 
     vector<vector<uint64_t> > global_output_tasks(threadnum*threadnum);
 
@@ -89,16 +90,32 @@ void parallel_bfs(graph_t& g, size_t root, unsigned threadnum, gBenchPerf_multi 
             {
                 uint64_t vid=input_tasks[i];
                 vertex_iterator vit = g.find_vertex(vid);
-                uint32_t curr_level = vit->property().level;
 
-                for (edge_iterator eit=vit->edges_begin();eit!=vit->edges_end();eit++)
+                for (edge_iterator eit=vit->in_edges_begin();eit!=vit->in_edges_end();eit++)
                 {
                     uint64_t dest_vid = eit->target();
                     vertex_iterator destvit = g.find_vertex(dest_vid);
-                    if (__sync_bool_compare_and_swap(&(destvit->property().level),
-                                                     MY_INFINITY,curr_level+1))
-                    {
+                    if(destvit->property().root > vit->property().root) {
+                        __sync_bool_compare_and_swap(&(destvit->property().root), destvit->property().root, vit->property().root);
                         global_output_tasks[vertex_distributor(dest_vid,threadnum)+tid*threadnum].push_back(dest_vid);
+                    }
+                }
+                for (edge_iterator eit=vit->out_edges_begin();eit!=vit->out_edges_end();eit++)
+                {
+                    uint64_t dest_vid = eit->target();
+                    vertex_iterator destvit = g.find_vertex(dest_vid);
+
+
+                    bool done = false;
+                    while(!done) {
+                        if(destvit->property().root > vit->property().root) {
+                            done = __sync_bool_compare_and_swap(&(destvit->property().root), destvit->property().root, vit->property().root);
+                            if(done) {
+                                global_output_tasks[vertex_distributor(dest_vid,threadnum)+tid*threadnum].push_back(dest_vid);
+                            }
+                        } else {
+                            done = true;
+                        }
                     }
                 }
             }
@@ -125,11 +142,11 @@ void parallel_bfs(graph_t& g, size_t root, unsigned threadnum, gBenchPerf_multi 
 
 void output(graph_t& g)
 {
-    cout<<"BFS Results: \n";
+    cout<<"WCC Results: \n";
     vertex_iterator vit;
     for (vit=g.vertices_begin(); vit!=g.vertices_end(); vit++)
     {
-        cout<<vit->id()<<" "<<vit->property().level<<"\n";
+        cout << vit->id() << " " << vit->property().root << "\n";
     }
 }
 
@@ -138,9 +155,7 @@ void reset_graph(graph_t & g)
     vertex_iterator vit;
     for (vit=g.vertices_begin(); vit!=g.vertices_end(); vit++)
     {
-        vit->property().color = COLOR_WHITE;
-        vit->property().order = 0;
-        vit->property().level = MY_INFINITY;
+        vit->property().root = vit->id();
     }
 
 }
@@ -149,7 +164,7 @@ void reset_graph(graph_t & g)
 int main(int argc, char * argv[])
 {
     graphBIG::print();
-    cout<<"Benchmark: BFS\n";
+    cout<<"Benchmark: WCC\n";
 
     argument_parser arg;
     gBenchPerf_event perf;
@@ -163,14 +178,19 @@ int main(int argc, char * argv[])
     arg.get_value("dataset",path);
     arg.get_value("separator",separator);
 
-    size_t root,threadnum;
-    arg.get_value("root",root);
+    size_t threadnum;
     arg.get_value("threadnum",threadnum);
 
     graph_t graph;
     double t1, t2;
 
     cout<<"loading data... \n";
+
+#ifndef ENABLE_VERIFY
+    operation loadGraph("OpenG", "Id.Unique", "LoadGraph", "Id.Unique");
+    cout<<loadGraph.getOperationInfo("StartTime", loadGraph.getEpoch())<<endl;
+#endif
+
     t1 = timer::get_usec();
     string vfile = path + "/vertex.csv";
     string efile = path + "/edge.csv";
@@ -192,37 +212,45 @@ int main(int argc, char * argv[])
 
 #ifndef ENABLE_VERIFY
     cout<<"== time: "<<t2-t1<<" sec\n";
+    cout<<loadGraph.getOperationInfo("EndTime", loadGraph.getEpoch())<<endl;
 #endif
 
-
-    cout<<"\nBFS root: "<<root<<"\n";
 
     gBenchPerf_multi perf_multi(threadnum, perf);
     unsigned run_num = ceil(perf.get_event_cnt() /(double) DEFAULT_PERF_GRP_SZ);
     if (run_num==0) run_num = 1;
     double elapse_time = 0;
 
+#ifndef ENABLE_VERIFY
+    operation processGraph("OpenG", "Id.Unique", "ProcessGraph", "Id.Unique");
+    cout<<processGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
+#endif
+
     for (unsigned i=0;i<run_num;i++)
     {
+        vector<vector<uint64_t> > global_input_tasks(threadnum);
+        parallel_init(graph,threadnum,global_input_tasks);
+
         t1 = timer::get_usec();
-        parallel_bfs(graph, root, threadnum, perf_multi, i);
+        parallel_wcc(graph, threadnum, global_input_tasks, perf_multi, i);
         t2 = timer::get_usec();
         elapse_time += t2-t1;
         if ((i+1)<run_num) reset_graph(graph);
     }
-    cout<<"BFS finish: \n";
+    cout<<"WCC finish: \n";
 
 #ifndef ENABLE_VERIFY
+    cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
     cout<<"== time: "<<elapse_time/run_num<<" sec\n";
-    if (threadnum == 1)
-        perf.print();
-    else
-        perf_multi.print();
+    perf_multi.print();
 #endif
 
 #ifdef ENABLE_OUTPUT
+    operation offloadGraph("OpenG", "Id.Unique", "OffloadGraph", "Id.Unique");
+    cout<<offloadGraph.getOperationInfo("StartTime", offloadGraph.getEpoch())<<endl;
     cout<<"\n";
     //output(graph);
+    cout<<offloadGraph.getOperationInfo("EndTime", offloadGraph.getEpoch())<<endl;
 #endif
 
     cout<<"=================================================================="<<endl;

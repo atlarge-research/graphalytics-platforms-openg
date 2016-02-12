@@ -39,9 +39,9 @@ public final class PageRankJob extends OpenGJob {
 	 * @param graphInputPath   the path to the input graph
 	 * @param graphOutputPath  the path to the output graph
 	 */
-	public PageRankJob(long iteration, float dampingFactor, JobConfiguration jobConfiguration,
+	public PageRankJob(long iteration, float dampingFactor, JobConfiguration jobConfiguration, String binaryPath,
 					   String graphInputPath, String graphOutputPath) {
-		super(jobConfiguration, graphInputPath, graphOutputPath);
+		super(jobConfiguration, binaryPath, graphInputPath, graphOutputPath);
 		this.iteration = iteration;
 		this.dampingFactor = dampingFactor;
 	}

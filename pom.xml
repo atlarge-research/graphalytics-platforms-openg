@@ -6,6 +6,8 @@
 	<version>0.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
+	<name>Graphalytics Platform OpenG - Root</name>
+
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<graphalytics.version>0.3-SNAPSHOT</graphalytics.version>
@@ -47,6 +49,7 @@
 				<activeByDefault>false</activeByDefault>
 			</activation>
 			<modules>
+				<module>granula-model-openg</module>
 				<module>graphalytics-platforms-openg-granula</module>
 			</modules>
 		</profile>

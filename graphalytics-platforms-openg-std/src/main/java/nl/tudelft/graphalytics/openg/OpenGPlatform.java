@@ -58,7 +58,7 @@ public class OpenGPlatform implements Platform {
 	public static final String OPENG_INTERMEDIATE_DIR_KEY = "openg.intermediate-dir";
 	public static final String OPENG_OUTPUT_DIR_KEY = "openg.output-dir";
 
-	public static final String BINARY_DIRECTORY = "./bin/";
+	public static String OPENG_BINARY_DIRECTORY = "./bin/standard";
 
 	protected Configuration opengConfig;
 	protected JobConfiguration jobConfiguration;
@@ -147,22 +147,22 @@ public class OpenGPlatform implements Platform {
 			case BFS:
 				long sourceVertex = ((BreadthFirstSearchParameters)parameters).getSourceVertex();
 				sourceVertex = currentGraphVertexIdTranslation.get(sourceVertex);
-				job = new BreadthFirstSearchJob(sourceVertex, jobConfiguration, currentGraphPath, outputGraphPath);
+				job = new BreadthFirstSearchJob(sourceVertex, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, outputGraphPath);
 				break;
 			case CDLP:
 				long maxIteration = ((CommunityDetectionLPParameters)parameters).getMaxIterations();
-				job = new CommunityDetectionLPJob(maxIteration, jobConfiguration, currentGraphPath, outputGraphPath);
+				job = new CommunityDetectionLPJob(maxIteration, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, outputGraphPath);
 				break;
 			case LCC:
-				job = new LocalClusteringCoefficientJob(jobConfiguration, currentGraphPath, outputGraphPath);
+				job = new LocalClusteringCoefficientJob(jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, outputGraphPath);
 				break;
 			case PR:
 				float dampingFactor = ((PageRankParameters)parameters).getDampingFactor();
 				long iteration = ((PageRankParameters)parameters).getNumberOfIterations();
-				job = new PageRankJob(iteration, dampingFactor, jobConfiguration, currentGraphPath, outputGraphPath);
+				job = new PageRankJob(iteration, dampingFactor, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, outputGraphPath);
 				break;
 			case WCC:
-				job = new WeaklyConnectedComponentsJob(jobConfiguration, currentGraphPath, outputGraphPath);
+				job = new WeaklyConnectedComponentsJob(jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, outputGraphPath);
 				break;
 			default:
 				// TODO: Implement other algorithms

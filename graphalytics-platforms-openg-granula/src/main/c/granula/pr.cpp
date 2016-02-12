@@ -9,8 +9,7 @@
 #include <queue>
 #include "omp.h"
 #include <stdint.h>
-#include "../openG/openG.h"
-#include "../common/common.h"
+#include "operation.h"
 
 using namespace std;
 
@@ -189,6 +188,11 @@ int main(int argc, char * argv[])
     graph_t graph;
     cout<<"loading data... \n";
 
+#ifndef ENABLE_VERIFY
+    operation loadGraph("OpenG", "Id.Unique", "LoadGraph", "Id.Unique");
+    cout<<loadGraph.getOperationInfo("StartTime", loadGraph.getEpoch())<<endl;
+#endif
+
     t1 = timer::get_usec();
     string vfile = path + "/vertex.csv";
     string efile = path + "/edge.csv";
@@ -211,6 +215,7 @@ int main(int argc, char * argv[])
 
 #ifndef ENABLE_VERIFY
     cout<<"== time: "<<t2-t1<<" sec\n\n";
+    cout<<loadGraph.getOperationInfo("EndTime", loadGraph.getEpoch())<<endl;
 #endif
 
     cout<<"\nComputing pagerank..."<<endl;
@@ -218,6 +223,11 @@ int main(int argc, char * argv[])
     unsigned run_num = ceil(perf.get_event_cnt() /(double) DEFAULT_PERF_GRP_SZ);
     if (run_num==0) run_num = 1;
     double elapse_time = 0;
+
+#ifndef ENABLE_VERIFY
+    operation processGraph("OpenG", "Id.Unique", "ProcessGraph", "Id.Unique");
+    cout<<processGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
+#endif
 
     for (unsigned i=0;i<run_num;i++)
     {
@@ -233,6 +243,7 @@ int main(int argc, char * argv[])
         if ((i+1)<run_num) reset_graph(graph);
     }
 #ifndef ENABLE_VERIFY
+    cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
     cout<<"== time: "<<elapse_time/run_num<<" sec\n";
     if (threadnum == 1)
         perf.print();
@@ -242,8 +253,11 @@ int main(int argc, char * argv[])
 #endif
 
 #ifdef ENABLE_OUTPUT
+    operation offloadGraph("OpenG", "Id.Unique", "OffloadGraph", "Id.Unique");
+    cout<<offloadGraph.getOperationInfo("StartTime", offloadGraph.getEpoch())<<endl;
     cout<<"\n";
     //output(graph);
+    cout<<offloadGraph.getOperationInfo("EndTime", offloadGraph.getEpoch())<<endl;
 #endif
     cout<<"==================================================================\n";
     return 0;
