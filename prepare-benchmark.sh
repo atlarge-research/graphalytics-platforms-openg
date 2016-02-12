@@ -24,24 +24,35 @@ fi
 
 # Get the first specification of openg.home
 OPENG_HOME=$(grep -E "^openg.home[	 ]*[:=]" $config/openg.properties | sed 's/openg.home[\t ]*[:=][\t ]*\([^\t ]*\).*/\1/g' | head -n 1)
-
-# Set the "platform" variable
-export platform="openg"
-
-# Build binaries
-if [ -z $openghome ]; then
-    openghome=`awk -F' *= *' '{ if ($1 == "openg.home") print $2 }' $config/openg.properties`
-fi
-
-if [ -z $openghome ]; then
+if [ -z $OPENG_HOME ]; then
     echo "Error: home directory for OpenG not specified."
     echo "Define the environment variable \$OPENG_HOME or modify openg.home in $config/openg.properties"
     exit 1
 fi
 
+# Set the "platform" variable
+export platform="openg"
 
-mkdir -p bin
-(cd bin && cmake -DCMAKE_BUILD_TYPE=Release ../src/ -DOPENG_HOME=$OPENG_HOME && make all VERBOSE=1)
+# Set Library jar
+export LIBRARY_JAR=`ls lib/graphalytics-*std*.jar`
+GRANULA_ENABLED=$(grep -E "^benchmark.run.granula.enabled[	 ]*[:=]" $config/granula.properties | sed 's/benchmark.run.granula.enabled[\t ]*[:=][\t ]*\([^\t ]*\).*/\1/g' | head -n 1)
+if [ "$GRANULA_ENABLED" = "true" ] ; then
+ if ! find lib -name "graphalytics-*granula*.jar" | grep -q '.'; then
+    echo "Granula cannot be enabled due to missing library jar" >&2
+ else
+    export LIBRARY_JAR=`ls lib/graphalytics-*granula*.jar`
+ fi
+fi
+
+# Build binaries
+mkdir -p bin/standard
+(cd bin/standard && cmake -DCMAKE_BUILD_TYPE=Release ../../src/main/c/standard -DOPENG_HOME=$OPENG_HOME && make all VERBOSE=1)
+
+if [ "$GRANULA_ENABLED" = "true" ] ; then
+ mkdir -p bin/granula
+ (cd bin/granula && cmake -DCMAKE_BUILD_TYPE=Release ../../src/main/c/granula -DOPENG_HOME=$OPENG_HOME && make all VERBOSE=1)
+fi
+
 
 if [ $? -ne 0 ]
 then

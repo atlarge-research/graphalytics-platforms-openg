@@ -1,0 +1,28 @@
+StartTime: 1455277857284
+==================================================================
+   ________                    .__   __________.___  ________ 
+  /  _____/___________  ______ |  |__\______   \   |/  _____/ 
+ /   \  __\_  __ \__  \ \____ \|  |  \|    |  _/   /   \  ___ 
+ \    \_\  \  | \// __ \|  |_> >   Y  \    |   \   \    \_\  \
+  \______  /__|  (____  /   __/|___|  /______  /___|\______  /
+         \/           \/|__|        \/       \/            \/ 
+                                                                 
+==================================================================
+Benchmark: BFS
+Benchmark: BFS
+loading data... 
+GRANULA - OperationUuid:7749363893351949254 ActorType:OpenG ActorId:Id.Unique MissionType:LoadGraph MissionId:Id.Unique InfoName:StartTime InfoValue:1455277857368 Timestamp:1455277857368
+== 10999 vertices  452622 edges
+== time: 0.794133 sec
+GRANULA - OperationUuid:7749363893351949254 ActorType:OpenG ActorId:Id.Unique MissionType:LoadGraph MissionId:Id.Unique InfoName:EndTime InfoValue:1455277858162 Timestamp:1455277858162
+
+BFS root: 6793
+GRANULA - OperationUuid:7222815480849057907 ActorType:OpenG ActorId:Id.Unique MissionType:ProcessGraph MissionId:Id.Unique InfoName:StartTime InfoValue:1455277858162 Timestamp:1455277858162
+BFS finish: 
+GRANULA - OperationUuid:7222815480849057907 ActorType:OpenG ActorId:Id.Unique MissionType:ProcessGraph MissionId:Id.Unique InfoName:EndTime InfoValue:1455277858201 Timestamp:1455277858201
+== time: 0.0390661 sec
+GRANULA - OperationUuid:8408462745175416063 ActorType:OpenG ActorId:Id.Unique MissionType:OffloadGraph MissionId:Id.Unique InfoName:StartTime InfoValue:1455277858201 Timestamp:1455277858201
+
+GRANULA - OperationUuid:8408462745175416063 ActorType:OpenG ActorId:Id.Unique MissionType:OffloadGraph MissionId:Id.Unique InfoName:EndTime InfoValue:1455277858201 Timestamp:1455277858201
+==================================================================
+EndTime: 1455277858790
