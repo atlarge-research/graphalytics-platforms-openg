@@ -26,11 +26,7 @@
         </fileSet>
         <!--Native C code needed to be compiled at runtime-->
         <fileSet>
-            <directory>${basedir}/graphalytics-platforms-openg-std/src</directory>
-            <outputDirectory>src</outputDirectory>
-        </fileSet>
-        <fileSet>
-            <directory>${basedir}/graphalytics-platforms-openg-granula/src</directory>
+            <directory>${basedir}/graphalytics-platforms-openg-std/src/main/c</directory>
             <outputDirectory>src</outputDirectory>
         </fileSet>
         <!--Graphalytics library jars-->

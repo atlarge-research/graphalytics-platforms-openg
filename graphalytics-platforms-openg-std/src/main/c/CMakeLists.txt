@@ -9,6 +9,10 @@ if (NOT OPENG_HOME)
     message(FATAL_ERROR "Before running cmake, please specify OPENG_HOME as environment variable or use -DOPENG_HOME")
 endif ()
 
+if (GRANULA)
+    add_definitions(-DGRANULA=1)
+endif ()
+
 include_directories(SYSTEM "${OPENG_HOME}/common")
 include_directories(SYSTEM "${OPENG_HOME}/openG")
 

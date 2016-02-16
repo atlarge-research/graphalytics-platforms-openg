@@ -137,7 +137,7 @@ public class OpenGPlatform implements Platform {
 		currentGraphPath = graphOutputPath;
 
 		currentGraphVertexIdTranslation = GraphParser.parseGraphAndWriteAdjacencyList(graph.getVertexFilePath(), graph.getEdgeFilePath(),
-				graphOutputPath, graph.getGraphFormat().isDirected(), (int)graph.getNumberOfVertices());
+				graphOutputPath, graph.isDirected(), (int)graph.getNumberOfVertices());
 	}
 
 	@Override

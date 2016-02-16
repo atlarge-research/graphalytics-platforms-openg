@@ -23,6 +23,10 @@
 #include "SIM.h"
 #endif
 
+#ifdef GRANULA
+#include "granula.hpp"
+#endif
+
 using namespace std;
 size_t beginiter = 0;
 size_t enditer = 0;
@@ -281,6 +285,11 @@ int main(int argc, char * argv[])
     graph_t graph;
     cout<<"loading data... \n";
 
+#ifdef GRANULA
+    granula::operation loadGraph("OpenG", "Id.Unique", "LoadGraph", "Id.Unique");
+    cout<<loadGraph.getOperationInfo("StartTime", loadGraph.getEpoch())<<endl;
+#endif
+
     t1 = timer::get_usec();
     string vfile = path + "/vertex.csv";
     string efile = path + "/edge.csv";
@@ -295,10 +304,11 @@ int main(int argc, char * argv[])
     size_t edge_num = graph.num_edges();
     t2 = timer::get_usec();
     cout<<"== "<<vertex_num<<" vertices  "<<edge_num<<" edges\n";
-#ifndef ENABLE_VERIFY
-    cout<<"== time: "<<t2-t1<<" sec\n\n";
-#endif
 
+#ifdef GRANULA
+    cout<<"== time: "<<t2-t1<<" sec\n";
+    cout<<loadGraph.getOperationInfo("EndTime", loadGraph.getEpoch())<<endl;
+#endif
 
     // sanity check
     if (graph.find_vertex(root)==graph.vertices_end())
@@ -315,6 +325,11 @@ int main(int argc, char * argv[])
     if (run_num==0) run_num = 1;
     double elapse_time = 0;
 
+#ifdef GRANULA
+    granula::operation processGraph("OpenG", "Id.Unique", "ProcessGraph", "Id.Unique");
+    cout<<processGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
+#endif
+
     for (unsigned i=0;i<run_num;i++)
     {
         t1 = timer::get_usec();
@@ -328,7 +343,9 @@ int main(int argc, char * argv[])
         elapse_time += t2-t1;
         if ((i+1)<run_num) reset_graph(graph);
     }
-#ifndef ENABLE_VERIFY
+
+#ifdef GRANULA
+    cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
     cout<<"== time: "<<elapse_time/run_num<<" sec\n";
     if (threadnum == 1)
         perf.print();
@@ -336,6 +353,12 @@ int main(int argc, char * argv[])
         perf_multi.print();
 #endif
 
+#ifdef GRANULA
+    granula::operation offloadGraph("OpenG", "Id.Unique", "OffloadGraph", "Id.Unique");
+    cout<<offloadGraph.getOperationInfo("StartTime", offloadGraph.getEpoch())<<endl;
+    cout<<"\n";
+    cout<<offloadGraph.getOperationInfo("EndTime", offloadGraph.getEpoch())<<endl;
+#endif
 
 #ifdef ENABLE_OUTPUT
     cout<<"\n";
