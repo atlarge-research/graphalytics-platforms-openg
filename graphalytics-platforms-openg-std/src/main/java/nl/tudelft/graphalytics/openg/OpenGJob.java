@@ -15,16 +15,21 @@
  */
 package nl.tudelft.graphalytics.openg;
 
-import nl.tudelft.graphalytics.openg.config.JobConfiguration;
-import org.apache.commons.exec.*;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import org.apache.commons.exec.CommandLine;
+import org.apache.commons.exec.DefaultExecutor;
+import org.apache.commons.exec.Executor;
+import org.apache.commons.exec.LogOutputStream;
+import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.Marker;
 import org.apache.logging.log4j.MarkerManager;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import nl.tudelft.graphalytics.openg.config.JobConfiguration;
 
 /**
  * Base class for all jobs in the OpenG benchmark suite. Configures and executes a OpenG job using the parameters
@@ -124,11 +129,6 @@ public abstract class OpenGJob {
 	 */
 	protected abstract String getExecutableName();
 
-
-	/**
-	 * @return true iff the algorithm requires edge properties to be read from the input graph
-	 */
-	protected abstract boolean usesEdgeProperties();
 
 	/**
 	 * Helper class for logging standard output from OpenG to log4j.

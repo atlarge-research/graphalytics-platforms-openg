@@ -15,12 +15,18 @@
  */
 package nl.tudelft.graphalytics.openg;
 
-import it.unimi.dsi.fastutil.longs.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.regex.Pattern;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.*;
-import java.util.regex.Pattern;
+import it.unimi.dsi.fastutil.longs.Long2LongMap;
+import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 
 /**
  * Utility class for converting graphs in Graphalytics' VE format to the adjacency list format supported by PGX.DIST.
@@ -48,20 +54,6 @@ public final class GraphParser {
 	private Long2LongMap parseAndWrite() throws IOException {
 		LOG.debug("- Reading vertex list to construct ID mapping");
 		Long2LongMap vertexIdTranslation = new Long2LongOpenHashMap(numberOfVertices);
-		LongList sortedVertexIds = new LongArrayList(numberOfVertices);
-		try (BufferedReader vertexData = new BufferedReader(new FileReader(vertexFilePath))) {
-			long nextVertexId = 0;
-			for (String vertexLine = vertexData.readLine(); vertexLine != null; vertexLine = vertexData.readLine()) {
-				if (vertexLine.isEmpty()) {
-					continue;
-				}
-
-				long vertexId = Long.parseLong(vertexLine);
-				vertexIdTranslation.put(vertexId, nextVertexId);
-				sortedVertexIds.add(vertexId);
-				nextVertexId++;
-			}
-		}
 
 		LOG.debug("- Writing OpenG csv format");
 
@@ -69,41 +61,45 @@ public final class GraphParser {
 			(new File(outputPath)).mkdirs();
 		}
 
-		try (BufferedReader edgeData = new BufferedReader(new FileReader(edgeFilePath));
+		try (BufferedReader vertexData = new BufferedReader(new FileReader(vertexFilePath));
 			 PrintWriter vertexListWriter = new PrintWriter(new File(outputPath + "/vertex.csv"))) {
-				 vertexListWriter.print("id");
-				 vertexListWriter.println();
-				parseVertices(sortedVertexIds, vertexIdTranslation, vertexListWriter);
+				parseVertices(vertexData, vertexIdTranslation, vertexListWriter);
 		}
 
 		try (BufferedReader edgeData = new BufferedReader(new FileReader(edgeFilePath));
 			 PrintWriter edgeListWriter = new PrintWriter(new File(outputPath + "/edge.csv"))) {
-			edgeListWriter.print("id|id");
-			edgeListWriter.println();
-			if (isGraphDirected) {
-				parseDirectedEdges(edgeData, vertexIdTranslation, sortedVertexIds, edgeListWriter);
-			} else {
-				parseUndirectedEdges(edgeData, vertexIdTranslation, sortedVertexIds, edgeListWriter);
-			}
+			parseEdges(edgeData, vertexIdTranslation, edgeListWriter, isGraphDirected);
 		}
 
 		return vertexIdTranslation;
 	}
 
 
-	private static void parseVertices(LongList sortedVertexIds, Long2LongMap vertexIdTranslation,
+	private static void parseVertices(BufferedReader vertexData, Long2LongMap vertexIdTranslation,
 									  PrintWriter vertexListWriter) throws IOException {
 		Pattern delimiterPattern = Pattern.compile(" ");
+		long nextVertexId = 0;
 
-		for (Long sortedVertexId : sortedVertexIds) {
-			vertexListWriter.print(vertexIdTranslation.get(sortedVertexId));
+		for (String vertexLine = vertexData.readLine(); vertexLine != null; vertexLine = vertexData.readLine()) {
+			if (vertexLine.isEmpty()) {
+				continue;
+			}
+
+			String[] vertexLineChunks = delimiterPattern.split(vertexLine, 2);
+
+			long vertexId = Long.parseLong(vertexLineChunks[0]);
+			vertexIdTranslation.put(vertexId, nextVertexId++);
+
+			vertexListWriter.print(vertexIdTranslation.get(vertexId));
+			if (vertexLineChunks.length > 1) {
+				vertexListWriter.append(' ').print(vertexLineChunks[1]);
+			}
 			vertexListWriter.println();
 		}
 	}
 
-
-	private static void parseDirectedEdges(BufferedReader edgeData, Long2LongMap vertexIdTranslation,
-										   LongList sortedVertexIds, PrintWriter edgeListWriter) throws IOException {
+	private static void parseEdges(BufferedReader edgeData, Long2LongMap vertexIdTranslation,
+											 PrintWriter edgeListWriter, boolean directed) throws IOException {
 		Pattern delimiterPattern = Pattern.compile(" ");
 
 		for (String edgeLine = edgeData.readLine(); edgeLine != null; edgeLine = edgeData.readLine()) {
@@ -111,44 +107,28 @@ public final class GraphParser {
 				continue;
 			}
 
-			String[] edgeLineChunks = delimiterPattern.split(edgeLine);
-			if (edgeLineChunks.length != 2) {
-				throw new IOException("Invalid data found in edge list: \"" + edgeLine + "\"");
-			}
+			String[] edgeLineChunks = delimiterPattern.split(edgeLine, 3);
 
 			long sourceId = Long.parseLong(edgeLineChunks[0]);
 			long destinationId = Long.parseLong(edgeLineChunks[1]);
 
 			edgeListWriter.print(vertexIdTranslation.get(sourceId));
-			edgeListWriter.append('|').print(vertexIdTranslation.get(destinationId));
-			edgeListWriter.println();
-		}
-	}
-
-	private static void parseUndirectedEdges(BufferedReader edgeData, Long2LongMap vertexIdTranslation,
-											 LongList sortedVertexIds, PrintWriter edgeListWriter) throws IOException {
-		Pattern delimiterPattern = Pattern.compile(" ");
-
-		for (String edgeLine = edgeData.readLine(); edgeLine != null; edgeLine = edgeData.readLine()) {
-			if (edgeLine.isEmpty()) {
-				continue;
-			}
-
-			String[] edgeLineChunks = delimiterPattern.split(edgeLine);
-			if (edgeLineChunks.length != 2) {
-				throw new IOException("Invalid data found in edge list: \"" + edgeLine + "\"");
-			}
-
-			long sourceId = Long.parseLong(edgeLineChunks[0]);
-			long destinationId = Long.parseLong(edgeLineChunks[1]);
-
-			edgeListWriter.print(vertexIdTranslation.get(sourceId));
-			edgeListWriter.append('|').print(vertexIdTranslation.get(destinationId));
-			edgeListWriter.println();
-
+			edgeListWriter.append(' ');
 			edgeListWriter.print(vertexIdTranslation.get(destinationId));
-			edgeListWriter.append('|').print(vertexIdTranslation.get(sourceId));
+			if (edgeLineChunks.length > 2) {
+				edgeListWriter.append(' ').print(edgeLineChunks[2]);
+			}
 			edgeListWriter.println();
+
+			if (!directed) {
+				edgeListWriter.print(vertexIdTranslation.get(destinationId));
+				edgeListWriter.append(' ');
+				edgeListWriter.print(vertexIdTranslation.get(sourceId));
+				if (edgeLineChunks.length > 2) {
+					edgeListWriter.append(' ').print(edgeLineChunks[2]);
+				}
+				edgeListWriter.println();
+			}
 		}
 	}
 

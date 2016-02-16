@@ -15,9 +15,10 @@
  */
 package nl.tudelft.graphalytics.openg.algorithms.cdlp;
 
+import org.apache.commons.exec.CommandLine;
+
 import nl.tudelft.graphalytics.openg.OpenGJob;
 import nl.tudelft.graphalytics.openg.config.JobConfiguration;
-import org.apache.commons.exec.CommandLine;
 
 /**
  * Breadth-first search job implementation for OpenG. This class is responsible for formatting BFS-specific
@@ -52,11 +53,5 @@ public final class CommunityDetectionLPJob extends OpenGJob {
 	@Override
 	protected String getExecutableName() {
 		return "cdlp";
-	}
-
-
-	@Override
-	protected boolean usesEdgeProperties() {
-		return false;
 	}
 }

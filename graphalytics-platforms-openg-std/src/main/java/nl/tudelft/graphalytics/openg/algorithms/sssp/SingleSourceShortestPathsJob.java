@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.tudelft.graphalytics.openg.algorithms.bfs;
+package nl.tudelft.graphalytics.openg.algorithms.sssp;
 
 import org.apache.commons.exec.CommandLine;
 
@@ -27,7 +27,7 @@ import nl.tudelft.graphalytics.openg.config.JobConfiguration;
  * @author Yong Guo
  * @author Tim Hegeman
  */
-public final class BreadthFirstSearchJob extends OpenGJob {
+public final class SingleSourceShortestPathsJob extends OpenGJob {
 
 	private final long sourceVertex;
 
@@ -39,7 +39,7 @@ public final class BreadthFirstSearchJob extends OpenGJob {
 	 * @param graphInputPath   the path to the input graph
 	 * @param graphOutputPath  the path to the output graph
 	 */
-	public BreadthFirstSearchJob(long sourceVertex, JobConfiguration jobConfiguration, String binaryPath,
+	public SingleSourceShortestPathsJob(long sourceVertex, JobConfiguration jobConfiguration, String binaryPath,
 			String graphInputPath, String graphOutputPath) {
 		super(jobConfiguration, binaryPath, graphInputPath, graphOutputPath);
 		this.sourceVertex = sourceVertex;
@@ -53,6 +53,6 @@ public final class BreadthFirstSearchJob extends OpenGJob {
 
 	@Override
 	protected String getExecutableName() {
-		return "bfs";
+		return "sssp";
 	}
 }

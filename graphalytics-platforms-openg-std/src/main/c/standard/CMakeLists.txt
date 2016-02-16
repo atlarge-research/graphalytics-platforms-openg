@@ -13,12 +13,11 @@ include_directories(SYSTEM "${OPENG_HOME}/common")
 include_directories(SYSTEM "${OPENG_HOME}/openG")
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -Wno-deprecated -O3 -DNO_PFM -DENABLE_OUTPUT -fopenmp")
-set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ")
-set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ")
 
 add_executable (bfs bfs.cpp)
 add_executable (pr pr.cpp)
 add_executable (cdlp cdlp.cpp)
 add_executable (wcc wcc.cpp)
 add_executable (lcc lcc.cpp)
+add_executable (sssp sssp.cpp)
 

@@ -15,32 +15,38 @@
  */
 package nl.tudelft.graphalytics.openg;
 
-import it.unimi.dsi.fastutil.longs.Long2LongMap;
-import nl.tudelft.graphalytics.Platform;
-import nl.tudelft.graphalytics.PlatformExecutionException;
-import nl.tudelft.graphalytics.configuration.ConfigurationUtil;
-import nl.tudelft.graphalytics.configuration.InvalidConfigurationException;
-import nl.tudelft.graphalytics.domain.*;
-import nl.tudelft.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
-import nl.tudelft.graphalytics.domain.algorithms.CommunityDetectionLPParameters;
-import nl.tudelft.graphalytics.domain.algorithms.PageRankParameters;
-import nl.tudelft.graphalytics.openg.algorithms.bfs.BreadthFirstSearchJob;
-import nl.tudelft.graphalytics.openg.algorithms.cdlp.CommunityDetectionLPJob;
-import nl.tudelft.graphalytics.openg.algorithms.pr.PageRankJob;
-import nl.tudelft.graphalytics.openg.algorithms.wcc.WeaklyConnectedComponentsJob;
-import nl.tudelft.graphalytics.openg.algorithms.lcc.LocalClusteringCoefficientJob;
-import nl.tudelft.graphalytics.openg.config.JobConfiguration;
-import nl.tudelft.graphalytics.openg.config.JobConfigurationParser;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
+
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import it.unimi.dsi.fastutil.longs.Long2LongMap;
+import nl.tudelft.graphalytics.Platform;
+import nl.tudelft.graphalytics.PlatformExecutionException;
+import nl.tudelft.graphalytics.configuration.ConfigurationUtil;
+import nl.tudelft.graphalytics.configuration.InvalidConfigurationException;
+import nl.tudelft.graphalytics.domain.Algorithm;
+import nl.tudelft.graphalytics.domain.Benchmark;
+import nl.tudelft.graphalytics.domain.Graph;
+import nl.tudelft.graphalytics.domain.NestedConfiguration;
+import nl.tudelft.graphalytics.domain.PlatformBenchmarkResult;
+import nl.tudelft.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
+import nl.tudelft.graphalytics.domain.algorithms.CommunityDetectionLPParameters;
+import nl.tudelft.graphalytics.domain.algorithms.PageRankParameters;
+import nl.tudelft.graphalytics.domain.algorithms.SingleSourceShortestPathsParameters;
+import nl.tudelft.graphalytics.openg.algorithms.bfs.BreadthFirstSearchJob;
+import nl.tudelft.graphalytics.openg.algorithms.cdlp.CommunityDetectionLPJob;
+import nl.tudelft.graphalytics.openg.algorithms.lcc.LocalClusteringCoefficientJob;
+import nl.tudelft.graphalytics.openg.algorithms.pr.PageRankJob;
+import nl.tudelft.graphalytics.openg.algorithms.sssp.SingleSourceShortestPathsJob;
+import nl.tudelft.graphalytics.openg.algorithms.wcc.WeaklyConnectedComponentsJob;
+import nl.tudelft.graphalytics.openg.config.JobConfiguration;
+import nl.tudelft.graphalytics.openg.config.JobConfigurationParser;
 
 /**
  * OpenG platform integration for the Graphalytics benchmark.
@@ -163,6 +169,11 @@ public class OpenGPlatform implements Platform {
 				break;
 			case WCC:
 				job = new WeaklyConnectedComponentsJob(jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, outputGraphPath);
+				break;
+			case SSSP:
+				sourceVertex = ((SingleSourceShortestPathsParameters)parameters).getSourceVertex();
+				sourceVertex = currentGraphVertexIdTranslation.get(sourceVertex);
+				job = new SingleSourceShortestPathsJob(sourceVertex, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, outputGraphPath);
 				break;
 			default:
 				// TODO: Implement other algorithms

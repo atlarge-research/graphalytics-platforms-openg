@@ -7,6 +7,7 @@
 #include "def.h"
 #include "openG.h"
 #include "omp.h"
+#include "util.hpp"
 #include <set>
 #include <vector>
 #include <algorithm>
@@ -200,15 +201,10 @@ int main(int argc, char * argv[])
     string vfile = path + "/vertex.csv";
     string efile = path + "/edge.csv";
 
-#ifndef EDGES_ONLY
-    if (graph.load_csv_vertices(vfile, true, separator, 0) == -1)
+    if (!load_graph_vertices(graph, vfile))
         return -1;
-    if (graph.load_csv_edges(efile, true, separator, 0, 1) == -1)
+    if (!load_graph_edges(graph, efile))
         return -1;
-#else
-    if (graph.load_csv_edges(path, true, separator, 0, 1) == -1)
-        return -1;
-#endif
 
     uint64_t vertex_num = graph.num_vertices();
     uint64_t edge_num = graph.num_edges();

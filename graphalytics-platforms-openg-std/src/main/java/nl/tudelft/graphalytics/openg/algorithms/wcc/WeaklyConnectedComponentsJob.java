@@ -15,9 +15,10 @@
  */
 package nl.tudelft.graphalytics.openg.algorithms.wcc;
 
+import org.apache.commons.exec.CommandLine;
+
 import nl.tudelft.graphalytics.openg.OpenGJob;
 import nl.tudelft.graphalytics.openg.config.JobConfiguration;
-import org.apache.commons.exec.CommandLine;
 
 /**
  * Connected components job implementation for OpenG. This class is responsible for formatting CC-specific
@@ -47,10 +48,4 @@ public final class WeaklyConnectedComponentsJob extends OpenGJob {
 	protected String getExecutableName() {
 		return "wcc";
 	}
-
-	@Override
-	protected boolean usesEdgeProperties() {
-		return false;
-	}
-
 }

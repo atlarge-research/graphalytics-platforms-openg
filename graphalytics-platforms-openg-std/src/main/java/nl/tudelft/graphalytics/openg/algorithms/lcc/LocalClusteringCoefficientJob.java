@@ -15,9 +15,10 @@
  */
 package nl.tudelft.graphalytics.openg.algorithms.lcc;
 
+import org.apache.commons.exec.CommandLine;
+
 import nl.tudelft.graphalytics.openg.OpenGJob;
 import nl.tudelft.graphalytics.openg.config.JobConfiguration;
-import org.apache.commons.exec.CommandLine;
 
 /**
  * Connected components job implementation for OpenG. This class is responsible for formatting CC-specific
@@ -47,11 +48,4 @@ public final class LocalClusteringCoefficientJob extends OpenGJob {
 	protected String getExecutableName() {
 		return "lcc";
 	}
-
-
-	@Override
-	protected boolean usesEdgeProperties() {
-		return false;
-	}
-
 }

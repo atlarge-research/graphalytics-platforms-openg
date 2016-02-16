@@ -15,9 +15,10 @@
  */
 package nl.tudelft.graphalytics.openg.algorithms.pr;
 
+import org.apache.commons.exec.CommandLine;
+
 import nl.tudelft.graphalytics.openg.OpenGJob;
 import nl.tudelft.graphalytics.openg.config.JobConfiguration;
-import org.apache.commons.exec.CommandLine;
 
 /**
  * Breadth-first search job implementation for OpenG. This class is responsible for formatting BFS-specific
@@ -59,11 +60,5 @@ public final class PageRankJob extends OpenGJob {
 	@Override
 	protected String getExecutableName() {
 		return "pr";
-	}
-
-
-	@Override
-	protected boolean usesEdgeProperties() {
-		return false;
 	}
 }
