@@ -38,11 +38,10 @@ public final class PageRankJob extends OpenGJob {
 	 * @param iteration     the ID of the source vertex
 	 * @param jobConfiguration the generic OpenG configuration to use for this job
 	 * @param graphInputPath   the path to the input graph
-	 * @param graphOutputPath  the path to the output graph
 	 */
 	public PageRankJob(long iteration, float dampingFactor, JobConfiguration jobConfiguration, String binaryPath,
-					   String graphInputPath, String graphOutputPath) {
-		super(jobConfiguration, binaryPath, graphInputPath, graphOutputPath);
+					   String graphInputPath) {
+		super(jobConfiguration, binaryPath, graphInputPath);
 		this.iteration = iteration;
 		this.dampingFactor = dampingFactor;
 	}

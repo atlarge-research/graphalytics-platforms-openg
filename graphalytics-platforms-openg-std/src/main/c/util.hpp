@@ -2,6 +2,8 @@
 #define UTIL_H
 
 #include <cstdlib>
+#include <fstream>
+#include <iostream>
 #include <stdint.h>
 #include <string>
 
@@ -150,6 +152,31 @@ bool load_graph_edges(G &graph, const std::string &file) {
     typedef bool (*parser_t)(const std::string&, eprop_t&);
 
     return load_graph_edges(graph, file, (parser_t*) NULL);
+}
+
+template <typename G>
+bool write_graph_vertices(G &graph, const std::string &file) {
+    typedef typename G::vertex_iterator vertex_iterator;
+
+    std::ofstream f(file.c_str());
+
+    if (!f) {
+        std::cerr << "failed to open file: " << file << std::endl;
+        return false;
+    }
+
+    for (vertex_iterator it = graph.vertices_begin(); it != graph.vertices_end(); it++) {
+        f << it->id() << " " << it->property() << "\n";
+    }
+
+    f.close();
+
+    if (f.bad()) {
+        std::cerr << "error while writing to file: " << file << std::endl;
+        return false;
+    }
+
+    return true;
 }
 
 #endif

@@ -37,11 +37,10 @@ public final class SingleSourceShortestPathsJob extends OpenGJob {
 	 * @param sourceVertex     the ID of the source vertex
 	 * @param jobConfiguration the generic OpenG configuration to use for this job
 	 * @param graphInputPath   the path to the input graph
-	 * @param graphOutputPath  the path to the output graph
 	 */
 	public SingleSourceShortestPathsJob(long sourceVertex, JobConfiguration jobConfiguration, String binaryPath,
-			String graphInputPath, String graphOutputPath) {
-		super(jobConfiguration, binaryPath, graphInputPath, graphOutputPath);
+			String graphInputPath) {
+		super(jobConfiguration, binaryPath, graphInputPath);
 		this.sourceVertex = sourceVertex;
 	}
 

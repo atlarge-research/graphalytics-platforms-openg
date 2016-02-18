@@ -46,7 +46,7 @@ public abstract class OpenGJob {
 	protected final JobConfiguration jobConfiguration;
 	private final String binaryPath;
 	private final String graphInputPath;
-	private final String graphOutputPath;
+	private String outputPath = null;
 
 	/**
 	 * Initializes the generic parameters required for running any OpenG job.
@@ -55,11 +55,19 @@ public abstract class OpenGJob {
 	 * @param graphInputPath   the path of the input graph
 	 * @param graphOutputPath  the path of the output graph
 	 */
-	public OpenGJob(JobConfiguration jobConfiguration, String binaryPath, String graphInputPath, String graphOutputPath) {
+	public OpenGJob(JobConfiguration jobConfiguration, String binaryPath, String graphInputPath) {
 		this.jobConfiguration = jobConfiguration;
 		this.binaryPath = binaryPath;
 		this.graphInputPath = graphInputPath;
-		this.graphOutputPath = graphOutputPath;
+	}
+
+	/**
+	 * Set the path to the file were the output of this job should be stored.
+	 *
+	 * @param path The path to the output file.
+	 */
+	public void setOutputPath(String path) {
+		this.outputPath = path;
 	}
 
 	/**
@@ -70,9 +78,10 @@ public abstract class OpenGJob {
 	 */
 	public int execute() throws IOException {
 		CommandLine commandLine = createCommandLineForExecutable();
-		appendGraphPathParameters(commandLine);;
+		appendGraphPathParameters(commandLine);
 		appendThreadingParameters(commandLine);
 		appendAlgorithmParameters(commandLine);
+		appendOutputPathParameters(commandLine);
 
 		LOG.debug("Starting job with command line: {}", commandLine.toString());
 
@@ -101,10 +110,12 @@ public abstract class OpenGJob {
 		commandLine.addArgument(Paths.get(graphInputPath).toString(), false);
 	}
 
-//	private void appendGraphTypeParameters(CommandLine commandLine) {
-//		commandLine.addArgument("-load_eprops=" + (usesEdgeProperties() ? "1" : "0"));
-//		commandLine.addArgument("-graph_export_type=" + getGraphExportType());
-//	}
+	private void appendOutputPathParameters(CommandLine commandLine) {
+		if (outputPath != null) {
+			commandLine.addArgument("--output ", false);
+			commandLine.addArgument(Paths.get(outputPath).toString(), false);
+		}
+	}
 
 	private void appendThreadingParameters(CommandLine commandLine) {
 

@@ -33,6 +33,10 @@ public:
     uint8_t color;
     uint64_t order;
     uint64_t level;
+
+    friend ostream& operator<< (ostream &strm, const vertex_property &that) {
+        return strm << that.level;
+    }
 };
 class edge_property
 {
@@ -51,6 +55,7 @@ typedef graph_t::edge_iterator      edge_iterator;
 void arg_init(argument_parser & arg)
 {
     arg.add_arg("root","0","root/starting vertex");
+    arg.add_arg("output", "", "Absolute path to the file where the output will be stored");
 }
 //==============================================================//
 
@@ -233,14 +238,19 @@ int main(int argc, char * argv[])
 #ifdef GRANULA
     granula::operation offloadGraph("OpenG", "Id.Unique", "OffloadGraph", "Id.Unique");
     cout<<offloadGraph.getOperationInfo("StartTime", offloadGraph.getEpoch())<<endl;
-    cout<<"\n";
+#endif
+
+    string output_file;
+    arg.get_value("output", output_file);
+
+    if (!output_file.empty()) {
+        write_graph_vertices(graph, output_file);
+    }
+
+#ifdef GRANULA
     cout<<offloadGraph.getOperationInfo("EndTime", offloadGraph.getEpoch())<<endl;
 #endif
 
-#ifdef ENABLE_OUTPUT
-    cout<<"\n";
-    //output(graph);
-#endif
 
     cout<<"=================================================================="<<endl;
     return 0;

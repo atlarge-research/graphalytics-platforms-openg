@@ -28,6 +28,10 @@ public:
     unsigned long count;
     unordered_set<uint64_t> unq_set;
     double lcc;
+
+    friend ostream& operator<< (ostream &strm, const vertex_property &that) {
+        return strm << that.lcc;
+    }
 };
 
 class edge_property
@@ -44,7 +48,10 @@ typedef graph_t::vertex_iterator    vertex_iterator;
 typedef graph_t::edge_iterator      edge_iterator;
 
 //==============================================================//
-
+void arg_init(argument_parser & arg)
+{
+    arg.add_arg("output", "", "Absolute path to the file where the output will be stored");
+}
 //==============================================================//
 size_t get_intersect_cnt(unordered_set<uint64_t> & setA, unordered_set<uint64_t> & setB)
 {
@@ -184,6 +191,7 @@ int main(int argc, char * argv[])
 
     argument_parser arg;
     gBenchPerf_event perf;
+    arg_init(arg);
     if (arg.parse(argc,argv,perf,false)==false)
     {
         arg.help();
@@ -264,14 +272,19 @@ int main(int argc, char * argv[])
 #ifdef GRANULA
     granula::operation offloadGraph("OpenG", "Id.Unique", "OffloadGraph", "Id.Unique");
     cout<<offloadGraph.getOperationInfo("StartTime", offloadGraph.getEpoch())<<endl;
-    cout<<"\n";
+#endif
+
+    string output_file;
+    arg.get_value("output", output_file);
+
+    if (!output_file.empty()) {
+        write_graph_vertices(graph, output_file);
+    }
+
+#ifdef GRANULA
     cout<<offloadGraph.getOperationInfo("EndTime", offloadGraph.getEpoch())<<endl;
 #endif
 
-#ifdef ENABLE_OUTPUT
-    cout<<"\n";
-    //output(graph);
-#endif
     cout<<"==================================================================\n";
     return 0;
 }  // end main

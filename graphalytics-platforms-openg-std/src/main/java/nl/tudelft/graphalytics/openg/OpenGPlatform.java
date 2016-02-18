@@ -106,8 +106,17 @@ public class OpenGPlatform implements Platform {
 		ensureDirectoryExists(graphOutputDirectory, OPENG_OUTPUT_DIR_KEY);
 	}
 
+	private String createIntermediateFile(String name) throws IOException {
+		return Paths.get(intermediateGraphDirectory, name).toString();
+	}
+
+	private void tryDeleteIntermediateFile(String path) {
+		if (!new File(path).delete()) {
+			LOG.warn("failed to delete intermediate file '{}'", path);
+		}
+	}
+
 	protected static void ensureDirectoryExists(String directory, String property) throws InvalidConfigurationException {
-		System.out.println(directory);
 		File directoryFile = new File(directory);
 		if (directoryFile.exists()) {
 			if (!directoryFile.isDirectory()) {
@@ -130,14 +139,17 @@ public class OpenGPlatform implements Platform {
 
 		//TODO check if this is true.
 		if (graph.getNumberOfVertices() > Integer.MAX_VALUE) {
-			throw new IllegalArgumentException("Graphalytics for OpenG does not currently support graphs with more than Integer.MAX_VALUE vertices");
+			throw new IllegalArgumentException("Graphalytics for OpenG does not currently support graphs with more than " + Integer.MAX_VALUE + " vertices");
 		}
 
-		String graphOutputPath = Paths.get(intermediateGraphDirectory, graph.getName()).toString();
-		currentGraphPath = graphOutputPath;
+		currentGraphPath = createIntermediateFile(graph.getName() + ".txt");
 
-		currentGraphVertexIdTranslation = GraphParser.parseGraphAndWriteAdjacencyList(graph.getVertexFilePath(), graph.getEdgeFilePath(),
-				graphOutputPath, graph.isDirected(), (int)graph.getNumberOfVertices());
+		currentGraphVertexIdTranslation = GraphParser.parseGraphAndWriteAdjacencyList(
+				graph.getVertexFilePath(),
+				graph.getEdgeFilePath(),
+				currentGraphPath,
+				graph.isDirected(),
+				(int)graph.getNumberOfVertices());
 	}
 
 	@Override
@@ -153,27 +165,27 @@ public class OpenGPlatform implements Platform {
 			case BFS:
 				long sourceVertex = ((BreadthFirstSearchParameters)parameters).getSourceVertex();
 				sourceVertex = currentGraphVertexIdTranslation.get(sourceVertex);
-				job = new BreadthFirstSearchJob(sourceVertex, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, outputGraphPath);
+				job = new BreadthFirstSearchJob(sourceVertex, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath);
 				break;
 			case CDLP:
 				long maxIteration = ((CommunityDetectionLPParameters)parameters).getMaxIterations();
-				job = new CommunityDetectionLPJob(maxIteration, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, outputGraphPath);
+				job = new CommunityDetectionLPJob(maxIteration, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath);
 				break;
 			case LCC:
-				job = new LocalClusteringCoefficientJob(jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, outputGraphPath);
+				job = new LocalClusteringCoefficientJob(jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath);
 				break;
 			case PR:
 				float dampingFactor = ((PageRankParameters)parameters).getDampingFactor();
 				long iteration = ((PageRankParameters)parameters).getNumberOfIterations();
-				job = new PageRankJob(iteration, dampingFactor, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, outputGraphPath);
+				job = new PageRankJob(iteration, dampingFactor, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath);
 				break;
 			case WCC:
-				job = new WeaklyConnectedComponentsJob(jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, outputGraphPath);
+				job = new WeaklyConnectedComponentsJob(jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath);
 				break;
 			case SSSP:
 				sourceVertex = ((SingleSourceShortestPathsParameters)parameters).getSourceVertex();
 				sourceVertex = currentGraphVertexIdTranslation.get(sourceVertex);
-				job = new SingleSourceShortestPathsJob(sourceVertex, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, outputGraphPath);
+				job = new SingleSourceShortestPathsJob(sourceVertex, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath);
 				break;
 			default:
 				// TODO: Implement other algorithms
@@ -182,23 +194,40 @@ public class OpenGPlatform implements Platform {
 
 		LOG.info("Executing algorithm \"{}\" on graph \"{}\".", algorithm.getName(), graph.getName());
 
-		int exitCode;
+		String intermediateOutputPath = null;
+
 		try {
-			exitCode = job.execute();
-		} catch (IOException e) {
+			if (benchmark.isOutputRequired()) {
+				intermediateOutputPath = createIntermediateFile("output.txt");
+				job.setOutputPath(intermediateOutputPath);
+			}
+
+			int exitCode = job.execute();
+
+			if (exitCode != 0) {
+				throw new PlatformExecutionException("OpenG completed with a non-zero exit code: " + exitCode);
+			}
+
+			if (benchmark.isOutputRequired()) {
+				OutputConverter.parseAndWrite(
+						intermediateOutputPath,
+						benchmark.getOutputPath(),
+						currentGraphVertexIdTranslation);
+			}
+		} catch(IOException e) {
 			throw new PlatformExecutionException("Failed to launch OpenG", e);
+		} finally {
+			if (intermediateOutputPath != null) {
+				tryDeleteIntermediateFile(intermediateOutputPath);
+			}
 		}
 
-		if (exitCode != 0) {
-			throw new PlatformExecutionException("OpenG completed with a non-zero exit code: " + exitCode);
-		}
 		return new PlatformBenchmarkResult(NestedConfiguration.empty());
 	}
 
 	@Override
 	public void deleteGraph(String graphName) {
-		// TODO: Implement
-		LOG.info("Deleting working copy of graph \"{}\". Not doing anything", graphName);
+		tryDeleteIntermediateFile(currentGraphPath);
 	}
 
 	@Override

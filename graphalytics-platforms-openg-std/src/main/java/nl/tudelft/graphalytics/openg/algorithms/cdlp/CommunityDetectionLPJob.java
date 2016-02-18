@@ -36,11 +36,10 @@ public final class CommunityDetectionLPJob extends OpenGJob {
 	 *
 	 * @param jobConfiguration the generic OpenG configuration to use for this job
 	 * @param graphInputPath   the path to the input graph
-	 * @param graphOutputPath  the path to the output graph
 	 */
 	public CommunityDetectionLPJob(long iteration, JobConfiguration jobConfiguration, String binaryPath,
-								   String graphInputPath, String graphOutputPath) {
-		super(jobConfiguration, binaryPath, graphInputPath, graphOutputPath);
+								   String graphInputPath) {
+		super(jobConfiguration, binaryPath, graphInputPath);
 		this.iteration = iteration;
 	}
 

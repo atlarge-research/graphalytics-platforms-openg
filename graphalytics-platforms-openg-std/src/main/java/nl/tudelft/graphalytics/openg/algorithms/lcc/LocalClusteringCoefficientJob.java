@@ -34,10 +34,9 @@ public final class LocalClusteringCoefficientJob extends OpenGJob {
 	 *
 	 * @param jobConfiguration the generic OpenG configuration to use for this job
 	 * @param graphInputPath   the path of the input graph
-	 * @param graphOutputPath  the path of the output graph
 	 */
-	public LocalClusteringCoefficientJob(JobConfiguration jobConfiguration, String binaryPath, String graphInputPath, String graphOutputPath) {
-		super(jobConfiguration, binaryPath, graphInputPath, graphOutputPath);
+	public LocalClusteringCoefficientJob(JobConfiguration jobConfiguration, String binaryPath, String graphInputPath) {
+		super(jobConfiguration, binaryPath, graphInputPath);
 	}
 
 	@Override

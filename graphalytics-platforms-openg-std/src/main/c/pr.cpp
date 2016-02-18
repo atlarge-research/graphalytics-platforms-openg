@@ -25,6 +25,10 @@ public:
     uint64_t degree;
     double rank;
     double sum;
+
+    friend ostream& operator<< (ostream &strm, const vertex_property &that) {
+        return strm << that.rank;
+    }
 };
 class edge_property
 {
@@ -43,6 +47,7 @@ void arg_init(argument_parser & arg)
 {
     arg.add_arg("dampingfactor","0.85","damping factor of pagerank");
     arg.add_arg("iteration","10","pagerank iterations");
+    arg.add_arg("output", "", "Absolute path to the file where the output will be stored");
 }
 //==============================================================//
 inline unsigned vertex_distributor(uint64_t vid, unsigned threadnum)
@@ -253,14 +258,19 @@ int main(int argc, char * argv[])
 #ifdef GRANULA
     granula::operation offloadGraph("OpenG", "Id.Unique", "OffloadGraph", "Id.Unique");
     cout<<offloadGraph.getOperationInfo("StartTime", offloadGraph.getEpoch())<<endl;
-    cout<<"\n";
+#endif
+
+    string output_file;
+    arg.get_value("output", output_file);
+
+    if (!output_file.empty()) {
+        write_graph_vertices(graph, output_file);
+    }
+
+#ifdef GRANULA
     cout<<offloadGraph.getOperationInfo("EndTime", offloadGraph.getEpoch())<<endl;
 #endif
 
-#ifdef ENABLE_OUTPUT
-    cout<<"\n";
-    //output(graph);
-#endif
     cout<<"==================================================================\n";
     return 0;
 }  // end main

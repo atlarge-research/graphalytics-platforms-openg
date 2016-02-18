@@ -40,8 +40,8 @@ public final class BreadthFirstSearchJob extends OpenGJob {
 	 * @param graphOutputPath  the path to the output graph
 	 */
 	public BreadthFirstSearchJob(long sourceVertex, JobConfiguration jobConfiguration, String binaryPath,
-			String graphInputPath, String graphOutputPath) {
-		super(jobConfiguration, binaryPath, graphInputPath, graphOutputPath);
+			String graphInputPath) {
+		super(jobConfiguration, binaryPath, graphInputPath);
 		this.sourceVertex = sourceVertex;
 	}
 
