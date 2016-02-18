@@ -21,6 +21,7 @@ import nl.tudelft.pds.granula.archiver.entity.operation.Operation;
 import nl.tudelft.pds.granula.modeller.openg.OpenGType;
 import nl.tudelft.pds.granula.modeller.model.operation.AbstractOperationModel;
 import nl.tudelft.pds.granula.modeller.rule.derivation.BasicSummaryDerivation;
+import nl.tudelft.pds.granula.modeller.rule.derivation.DerivationRule;
 import nl.tudelft.pds.granula.modeller.rule.derivation.time.DurationDerivation;
 import nl.tudelft.pds.granula.modeller.rule.derivation.time.FilialEndTimeDerivation;
 import nl.tudelft.pds.granula.modeller.rule.derivation.time.FilialStartTimeDerivation;
@@ -29,6 +30,7 @@ import nl.tudelft.pds.granula.modeller.rule.visual.MainInfoTableVisualization;
 import nl.tudelft.pds.granula.modeller.rule.visual.TableVisualization;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class TopActorTopMission extends AbstractOperationModel {
 
@@ -51,13 +53,16 @@ public class TopActorTopMission extends AbstractOperationModel {
         addInfoDerivation(new FilialEndTimeDerivation(6));
         addInfoDerivation(new DurationDerivation(7));
         addInfoDerivation(new SummaryDerivation(10));
+        addInfoDerivation(new ProcessingTimeDerivation(7));
+        addInfoDerivation(new OverallTimeDerivation(8));
 //        addInfoDerivation(new ComputationClassDerivation(2));
 //        addInfoDerivation(new DatasetDerivation(2));
 //        addInfoDerivation(new ContainersLoadedDerivation(2));
 //        addInfoDerivation(new ContainerSizeDerivation(2));
         addVisualDerivation(new MainInfoTableVisualization(1,
                 new ArrayList<String>() {{
-
+                    add("OverallTime");
+                    add("ProcessTime");
                 }}));
         addVisualDerivation(new TableVisualization(1, "GeneralInfoTable",
                 new ArrayList<String>() {{
@@ -73,6 +78,53 @@ public class TopActorTopMission extends AbstractOperationModel {
 //                    add("ArchivingTime");
                 }}));
 
+    }
+
+
+    protected class OverallTimeDerivation extends DerivationRule {
+
+        public OverallTimeDerivation(int level) { super(level); }
+
+        @Override
+        public boolean execute() {
+            Operation operation = (Operation) entity;
+            Info jobDuration = operation.getInfo("Duration");
+
+
+            List<Source> sources = new ArrayList<>();
+            sources.add(new InfoSource(jobDuration.getName(), jobDuration));
+
+            BasicInfo overallTime = new BasicInfo("OverallTime");
+            overallTime.setDescription(String.format("The [%s] is the overall time of the job.", overallTime.getName()));
+            overallTime.addInfo(jobDuration.getValue(), sources);
+            operation.addInfo(overallTime);
+
+            return  true;
+        }
+    }
+
+
+    protected class ProcessingTimeDerivation extends DerivationRule {
+
+        public ProcessingTimeDerivation(int level) { super(level); }
+
+        @Override
+        public boolean execute() {
+            Operation operation = (Operation) entity;
+            Operation processGraph = operation.findSuboperation(OpenGType.ProcessGraph);
+            Info processGraphDurationInfo = processGraph.getInfo("Duration");
+
+
+            List<Source> sources = new ArrayList<>();
+            sources.add(new InfoSource(processGraphDurationInfo.getName(), processGraphDurationInfo));
+
+            BasicInfo processingTime = new BasicInfo("ProcessTime");
+            processingTime.setDescription(String.format("The [%s] is the time for algorithm execution", processingTime.getName()));
+            processingTime.addInfo(processGraphDurationInfo.getValue(), sources);
+            operation.addInfo(processingTime);
+
+            return  true;
+        }
     }
 
     protected class SummaryDerivation extends BasicSummaryDerivation {
