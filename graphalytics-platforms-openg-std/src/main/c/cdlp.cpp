@@ -152,9 +152,9 @@ void parallel_cdlp(graph_t &g, size_t iteration, unsigned threadnum,
                     global_output_tasks[i*threadnum+tid].clear();
             }
             if(tid==0) {
-                if(step < iteration) {
-                    step++;
-                } else {
+                step++;
+
+                if(step >= iteration) {
                     stop = true;
                 }
             }
