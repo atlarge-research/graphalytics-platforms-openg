@@ -175,6 +175,10 @@ int main(int argc, char * argv[])
     cout<<"Benchmark: WCC\n";
 
 #ifdef GRANULA
+    granula::operation opengJob("OpenG", "Id.Unique", "Job", "Id.Unique");
+    granula::operation loadGraph("OpenG", "Id.Unique", "LoadGraph", "Id.Unique");
+    granula::operation processGraph("OpenG", "Id.Unique", "ProcessGraph", "Id.Unique");
+    granula::operation offloadGraph("OpenG", "Id.Unique", "OffloadGraph", "Id.Unique");
     cout<<opengJob.getOperationInfo("StartTime", opengJob.getEpoch())<<endl;
 #endif
 
@@ -199,7 +203,6 @@ int main(int argc, char * argv[])
     cout<<"loading data... \n";
 
 #ifdef GRANULA
-    cout<<opengJob.getOperationInfo("StartTime", opengJob.getEpoch())<<endl;
     cout<<loadGraph.getOperationInfo("StartTime", loadGraph.getEpoch())<<endl;
 #endif
 

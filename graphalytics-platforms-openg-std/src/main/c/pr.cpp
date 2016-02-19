@@ -207,7 +207,6 @@ int main(int argc, char * argv[])
     cout<<"loading data... \n";
 
 #ifdef GRANULA
-    cout<<opengJob.getOperationInfo("StartTime", opengJob.getEpoch())<<endl;
     cout<<loadGraph.getOperationInfo("StartTime", loadGraph.getEpoch())<<endl;
 #endif
     t1 = timer::get_usec();
