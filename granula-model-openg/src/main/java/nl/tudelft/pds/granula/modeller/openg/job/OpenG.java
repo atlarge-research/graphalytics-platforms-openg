@@ -32,6 +32,7 @@ public class OpenG extends JobModel {
     public OpenG() {
         super();
         addOperationModel(new TopActorTopMission());
+        addOperationModel(new OpenGJob());
         addOperationModel(new LoadGraph());
         addOperationModel(new OffloadGraph());
         addOperationModel(new ProcessGraph());

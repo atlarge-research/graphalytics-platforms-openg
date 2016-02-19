@@ -189,6 +189,14 @@ int main(int argc, char * argv[])
     graphBIG::print();
     cout<<"Benchmark: LCC\n";
 
+#ifdef GRANULA
+    granula::operation opengJob("OpenG", "Id.Unique", "Job", "Id.Unique");
+    granula::operation loadGraph("OpenG", "Id.Unique", "LoadGraph", "Id.Unique");
+    granula::operation processGraph("OpenG", "Id.Unique", "ProcessGraph", "Id.Unique");
+    granula::operation offloadGraph("OpenG", "Id.Unique", "OffloadGraph", "Id.Unique");
+    cout<<opengJob.getOperationInfo("StartTime", opengJob.getEpoch())<<endl;
+#endif
+
     argument_parser arg;
     gBenchPerf_event perf;
     arg_init(arg);
@@ -210,7 +218,7 @@ int main(int argc, char * argv[])
     cout<<"loading data... \n";
 
 #ifdef GRANULA
-    granula::operation loadGraph("OpenG", "Id.Unique", "LoadGraph", "Id.Unique");
+    cout<<opengJob.getOperationInfo("StartTime", opengJob.getEpoch())<<endl;
     cout<<loadGraph.getOperationInfo("StartTime", loadGraph.getEpoch())<<endl;
 #endif
 
@@ -246,7 +254,6 @@ int main(int argc, char * argv[])
     double elapse_time = 0;
 
 #ifdef GRANULA
-    granula::operation processGraph("OpenG", "Id.Unique", "ProcessGraph", "Id.Unique");
     cout<<processGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
 #endif
 
@@ -270,7 +277,6 @@ int main(int argc, char * argv[])
 #endif
 
 #ifdef GRANULA
-    granula::operation offloadGraph("OpenG", "Id.Unique", "OffloadGraph", "Id.Unique");
     cout<<offloadGraph.getOperationInfo("StartTime", offloadGraph.getEpoch())<<endl;
 #endif
 
@@ -283,6 +289,7 @@ int main(int argc, char * argv[])
 
 #ifdef GRANULA
     cout<<offloadGraph.getOperationInfo("EndTime", offloadGraph.getEpoch())<<endl;
+    cout<<opengJob.getOperationInfo("EndTime", opengJob.getEpoch())<<endl;
 #endif
 
     cout<<"==================================================================\n";

@@ -30,6 +30,7 @@ public class OpenGType extends Identifier {
     public static String ColorGrey = "#999999";
 
     public static String OpenG = "OpenG";
+    public static String Job = "Job";
     public static String LoadGraph = "LoadGraph";
     public static String OffloadGraph = "OffloadGraph";
     public static String ProcessGraph = "ProcessGraph";

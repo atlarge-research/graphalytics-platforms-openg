@@ -111,7 +111,7 @@ public class TopActorTopMission extends AbstractOperationModel {
         @Override
         public boolean execute() {
             Operation operation = (Operation) entity;
-            Operation processGraph = operation.findSuboperation(OpenGType.ProcessGraph);
+            Operation processGraph = operation.findSuboperation(OpenGType.Job).findSuboperation(OpenGType.ProcessGraph);
             Info processGraphDurationInfo = processGraph.getInfo("Duration");
 
 

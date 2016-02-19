@@ -8,6 +8,7 @@ StartTime: 1455277857284
          \/           \/|__|        \/       \/            \/ 
                                                                  
 ==================================================================
+GRANULA - OperationUuid:7749363893351256832 ActorType:OpenG ActorId:Id.Unique MissionType:Job MissionId:Id.Unique InfoName:StartTime InfoValue:1455277857368 Timestamp:1455277857368
 Benchmark: BFS
 Benchmark: BFS
 loading data... 
@@ -24,5 +25,7 @@ GRANULA - OperationUuid:7222815480849057907 ActorType:OpenG ActorId:Id.Unique Mi
 GRANULA - OperationUuid:8408462745175416063 ActorType:OpenG ActorId:Id.Unique MissionType:OffloadGraph MissionId:Id.Unique InfoName:StartTime InfoValue:1455277858201 Timestamp:1455277858201
 
 GRANULA - OperationUuid:8408462745175416063 ActorType:OpenG ActorId:Id.Unique MissionType:OffloadGraph MissionId:Id.Unique InfoName:EndTime InfoValue:1455277858201 Timestamp:1455277858201
+GRANULA - OperationUuid:7749363893351256832 ActorType:OpenG ActorId:Id.Unique MissionType:Job MissionId:Id.Unique InfoName:EndTime InfoValue:1455277858201 Timestamp:1455277858201
+
 ==================================================================
 EndTime: 1455277858790

@@ -37,7 +37,7 @@ public class OffloadGraph extends ConcreteOperationModel {
     public void loadRules() {
         super.loadRules();
 
-        addLinkingRule(new UniqueParentLinking(OpenGType.TopActor, OpenGType.TopMission));
+        addLinkingRule(new UniqueParentLinking(OpenGType.OpenG, OpenGType.Job));
 
 
 //        addInfoDerivation(new RecordInfoDerivation(1, "StackTrace"));
