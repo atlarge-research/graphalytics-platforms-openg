@@ -35,7 +35,14 @@ public:
     uint64_t level;
 
     friend ostream& operator<< (ostream &strm, const vertex_property &that) {
-        return strm << that.level;
+        // According to graphalytics specifications, the output
+        // for BFS should the maximum value for a signed 64-bit
+        // integer if a vertex is unreachable.
+        if (that.level == MY_INFINITY) {
+            return strm << numeric_limits<int64_t>::max();
+        } else {
+            return strm << that.level;
+        }
     }
 };
 class edge_property
