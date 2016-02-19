@@ -23,6 +23,7 @@ class vertex_property
 public:
     vertex_property(){}
     uint64_t label;
+    uint64_t next_label;
 
     friend ostream& operator<< (ostream &strm, const vertex_property &that) {
         return strm << that.label;
@@ -127,11 +128,20 @@ void parallel_cdlp(graph_t &g, size_t iteration, unsigned threadnum,
                         highest_freq = freq;
                     }
                 }
-                vit->property().label = bestLabel;
+                vit->property().next_label = bestLabel;
 
                 histogram.clear();
                 global_output_tasks[vertex_distributor(vid,threadnum)+tid*threadnum].push_back(vid);
             }
+
+            #pragma omp barrier
+            for (unsigned i=0;i<input_tasks.size();i++)
+            {
+                uint64_t vid=input_tasks[i];
+                vertex_iterator vit = g.find_vertex(vid);
+                vit->property().label = vit->property().next_label;
+            }
+
             #pragma omp barrier
             input_tasks.clear();
             for (unsigned i=0;i<threadnum;i++)
