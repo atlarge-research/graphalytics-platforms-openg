@@ -53,17 +53,20 @@ void arg_init(argument_parser & arg)
     arg.add_arg("output", "", "Absolute path to the file where the output will be stored");
 }
 //==============================================================//
-size_t get_intersect_cnt(unordered_set<uint64_t> & setA, unordered_set<uint64_t> & setB)
+size_t get_intersect_cnt(unordered_set<uint64_t> & setA, vertex_iterator & vit_targ)
 {
     unordered_set<uint64_t> setC;
     setC.clear();
 
     for ( auto it1 = setA.begin(); it1 != setA.end(); ++it1 ) {
-        for ( auto it2 = setB.begin(); it2 != setB.end(); ++it2 ) {
-            if(*it1 == *it2) {
-                setC.insert(*it1);
-            }
-        }
+
+                    for (edge_iterator eit=vit_targ->edges_begin();eit!=vit_targ->edges_end();eit++)
+                    {
+                                if(*it1 == eit->target()) {
+                                    setC.insert(eit->target());
+                                }
+                    }
+
     }
     return setC.size();
 }
@@ -137,19 +140,9 @@ void parallel_lcc(graph_t &g, unsigned threadnum, vector<unsigned> &workset,
         for (uint64_t vid=start;vid<end;vid++)
         {
             vertex_iterator vit = g.find_vertex(vid);
-
-            unordered_set<uint64_t> &u_set = vit->property().unq_set;
-
-            for (auto it = u_set.begin(); it != u_set.end(); ++it) {
-
-                vertex_iterator vit_targ = g.find_vertex(*it);
-
-                unordered_set<uint64_t> w_set;
-                for (edge_iterator eit=vit_targ->edges_begin();eit!=vit_targ->edges_end();eit++)
-                {
-                    w_set.insert(eit->target());
-                }
-                size_t cnt = get_intersect_cnt(u_set, w_set);
+            for (auto it = vit->property().unq_set.begin(); it != vit->property().unq_set.end(); ++it) {
+               vertex_iterator vit_targ = g.find_vertex(*it);
+                size_t cnt = get_intersect_cnt(vit->property().unq_set, vit_targ);
                 __sync_fetch_and_add(&(vit->property().count), cnt);
             }
 

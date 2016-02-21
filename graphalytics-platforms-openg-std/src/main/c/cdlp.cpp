@@ -143,14 +143,6 @@ void parallel_cdlp(graph_t &g, size_t iteration, unsigned threadnum,
             }
 
             #pragma omp barrier
-            input_tasks.clear();
-            for (unsigned i=0;i<threadnum;i++)
-            {
-                    input_tasks.insert(input_tasks.end(),
-                                       global_output_tasks[i*threadnum+tid].begin(),
-                                       global_output_tasks[i*threadnum+tid].end());
-                    global_output_tasks[i*threadnum+tid].clear();
-            }
             if(tid==0) {
                 step++;
 
