@@ -124,6 +124,11 @@ bool load_graph_edges(G &graph, const std::string &file, P *value_parser) {
         skip_whitespace(&str);
 
         edge_t eit;
+        //FIXME:  add_edge should use internal vertex-id,
+        //  not external id.
+        // Nedd to add an extra mapping (external id -> internal id) here.
+        // NOTE: actually openG load_csv_edges covers the same functionality
+        //   (check its code comments)
         graph.add_edge(src, dst, eit);
 
         if (value_parser) {
@@ -178,5 +183,29 @@ bool write_graph_vertices(G &graph, const std::string &file) {
 
     return true;
 }
+template <typename G>
+bool write_csr_graph_vertices(G &graph, const std::string &file) {
+    std::ofstream f(file.c_str());
+
+    if (!f) {
+        std::cerr << "failed to open file: " << file << std::endl;
+        return false;
+    }
+
+    for (uint64_t vid=0;vid<graph.vertex_num();vid++)
+    {
+        f << vid << " " << graph.get_vertex_property(vid) << "\n";
+    }
+
+    f.close();
+
+    if (f.bad()) {
+        std::cerr << "error while writing to file: " << file << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
 
 #endif

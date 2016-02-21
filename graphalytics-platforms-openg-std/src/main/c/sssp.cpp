@@ -306,11 +306,18 @@ int main(int argc, char * argv[])
     string vfile = path + "/vertex.csv";
     string efile = path + "/edge.csv";
 
-
+    /*
     if (!load_graph_vertices(graph, vfile))
         return -1;
     if (!load_graph_edges(graph, efile, &edge_parser))
         return -1;
+    */
+
+    if (!graph.load_csv_vertices(vfile, false, " ", 0))
+        return -1;
+    if (!graph.load_csv_edges(efile, false, " ", 0, 1))
+        return -1;
+
 
     size_t vertex_num = graph.num_vertices();
     size_t edge_num = graph.num_edges();
