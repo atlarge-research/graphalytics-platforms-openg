@@ -15,6 +15,10 @@ ifeq (${TEST}, 1)
   CXX_FLAGS += -DGRANULA
 endif
 
+ifeq (${CSR}, 1)
+  CXX_FLAGS += -DUSE_CSR
+endif
+
 ifeq (${PFM},0)
   CXX_FLAGS += -DNO_PFM
 else

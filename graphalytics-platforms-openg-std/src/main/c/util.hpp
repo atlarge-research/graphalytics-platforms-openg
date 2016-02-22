@@ -194,7 +194,7 @@ bool write_csr_graph_vertices(G &graph, const std::string &file) {
 
     for (uint64_t vid=0;vid<graph.vertex_num();vid++)
     {
-        f << vid << " " << graph.get_vertex_property(vid) << "\n";
+        f << vid << " " << graph.csr_vertex_property(vid) << "\n";
     }
 
     f.close();

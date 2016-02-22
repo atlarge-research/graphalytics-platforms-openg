@@ -70,7 +70,109 @@ size_t get_intersect_cnt(unordered_set<uint64_t> & setA, vertex_iterator & vit_t
     }
     return setC.size();
 }
+#ifdef USE_CSR
+size_t get_intersect_cnt(unordered_set<uint64_t> & setA, uint64_t vid, graph_t& g)
+{
+    unordered_set<uint64_t> setC;
+    setC.clear();
 
+    for ( auto it1 = setA.begin(); it1 != setA.end(); ++it1 ) {
+        for (uint64_t i=0;i<g.csr_out_edges_size(vid);i++)
+        {
+            uint64_t targ = g.csr_out_edge(g.csr_out_edges_begin(vid),i);
+            if(*it1 == targ)
+                setC.insert(targ);
+        }
+
+    }
+    return setC.size();
+}
+void gen_workset(graph_t& g, vector<unsigned>& workset, unsigned threadnum)
+{
+    unsigned chunk = (unsigned)ceil(g.num_edges()/(double)threadnum);
+    unsigned last=0, curr=0, th=1;
+    workset.clear();
+    workset.resize(threadnum+1,0);
+    for (uint64_t vid=0;vid<g.vertex_num();vid++)
+    {
+        curr += g.csr_out_edges_size(vid);
+
+        if ((curr-last)>=chunk)
+        {
+            last = curr;
+            workset[th] = vid;
+            if (th<threadnum) th++;
+        }
+    }
+    workset[threadnum] = g.num_vertices();
+}
+
+void parallel_lcc_init(graph_t &g, unsigned threadnum)
+{
+    vector<unsigned> ws;
+    gen_workset(g, ws, threadnum);
+
+    #pragma omp parallel num_threads(threadnum)
+    {
+        unsigned tid = omp_get_thread_num();
+
+        // prepare neighbor set for each vertex
+        for (uint64_t vid=ws[tid];vid<ws[tid+1];vid++)
+        {
+            if (vid >= g.vertex_num()) continue;
+
+            g.csr_vertex_property(vid).count = 0;
+
+            unordered_set<uint64_t>& cur_set = g.csr_vertex_property(vid).unq_set;
+            cur_set.reserve(g.csr_in_edges_size(vid) + g.csr_out_edges_size(vid));
+            for (uint64_t i=0;i<g.csr_in_edges_size(vid);i++)
+            {
+                cur_set.insert(g.csr_in_edge(g.csr_in_edges_begin(vid),i));
+            }
+            for (uint64_t i=0;i<g.csr_out_edges_size(vid);i++)
+            {
+                cur_set.insert(g.csr_out_edge(g.csr_out_edges_begin(vid),i));
+            }
+        }
+    }
+}
+
+
+void parallel_lcc(graph_t &g, unsigned threadnum, vector<unsigned> &workset,
+                  gBenchPerf_multi &perf, int perf_group)
+{
+
+    #pragma omp parallel num_threads(threadnum)
+    {
+        unsigned tid = omp_get_thread_num();
+
+        perf.open(tid, perf_group);
+        perf.start(tid, perf_group);
+        unsigned start = workset[tid];
+        unsigned end = workset[tid+1];
+        if (end > g.num_vertices()) end = g.num_vertices();
+
+        // run lcc now
+        for (uint64_t vid=start;vid<end;vid++)
+        {
+            for (auto it = g.csr_vertex_property(vid).unq_set.begin(); it != g.csr_vertex_property(vid).unq_set.end(); ++it) {
+                size_t cnt = get_intersect_cnt(g.csr_vertex_property(vid).unq_set, *it, g);
+                __sync_fetch_and_add(&(g.csr_vertex_property(vid).count), cnt);
+            }
+
+            int degree = g.csr_vertex_property(vid).unq_set.size();
+            g.csr_vertex_property(vid).lcc = 0;
+            if(degree >= 2) {
+                g.csr_vertex_property(vid).lcc = (double) g.csr_vertex_property(vid).count / (degree * (degree - 1));
+            }
+        }
+        #pragma omp barrier
+        perf.stop(tid, perf_group);
+    }
+
+}
+
+#else
 void gen_workset(graph_t& g, vector<unsigned>& workset, unsigned threadnum)
 {
     unsigned chunk = (unsigned)ceil(g.num_edges()/(double)threadnum);
@@ -157,7 +259,7 @@ void parallel_lcc(graph_t &g, unsigned threadnum, vector<unsigned> &workset,
     }
 
 }
-
+#endif
 void output(graph_t& g)
 {
     cout<<"LCC Results: \n";
@@ -217,7 +319,10 @@ int main(int argc, char * argv[])
     t1 = timer::get_usec();
     string vfile = path + "/vertex.csv";
     string efile = path + "/edge.csv";
-
+#ifdef USE_CSR
+    if (!graph.load_CSR_Graph(path))
+        return -1;
+#else
     /*
     if (!load_graph_vertices(graph, vfile))
         return -1;
@@ -228,7 +333,7 @@ int main(int argc, char * argv[])
         return -1;
     if (!graph.load_csv_edges(efile, false, " ", 0, 1))
         return -1;
-
+#endif
 
     uint64_t vertex_num = graph.num_vertices();
     uint64_t edge_num = graph.num_edges();
@@ -283,7 +388,11 @@ int main(int argc, char * argv[])
     arg.get_value("output", output_file);
 
     if (!output_file.empty()) {
+#ifdef USE_CSR
+        write_csr_graph_vertices(graph, output_file);
+#else
         write_graph_vertices(graph, output_file);
+#endif
     }
 
 #ifdef GRANULA
