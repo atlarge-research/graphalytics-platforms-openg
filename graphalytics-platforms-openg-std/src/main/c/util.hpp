@@ -6,6 +6,7 @@
 #include <iostream>
 #include <stdint.h>
 #include <string>
+#include <limits>
 
 #include "openG.h"
 
@@ -184,7 +185,7 @@ bool write_graph_vertices(G &graph, const std::string &file) {
     return true;
 }
 template <typename G>
-bool write_csr_graph_vertices(G &graph, const std::string &file) {
+bool write_csr_graph_vertices(G &graph, const std::string &file, bool value_convert=false) {
     std::ofstream f(file.c_str());
 
     if (!f) {
@@ -192,11 +193,22 @@ bool write_csr_graph_vertices(G &graph, const std::string &file) {
         return false;
     }
 
-    for (uint64_t vid=0;vid<graph.vertex_num();vid++)
+    if (value_convert)
     {
-        f << vid << " " << graph.csr_vertex_property(vid) << "\n";
-    }
+        for (uint64_t vid=0;vid<graph.vertex_num();vid++)
+        {
+            uint64_t value = graph.csr_vertex_property(vid).output_value();
+            f << graph.csr_external_id(vid) << " " << graph.csr_external_id(value) << "\n";
+        }
 
+    }
+    else
+    {
+        for (uint64_t vid=0;vid<graph.vertex_num();vid++)
+        {
+            f << graph.csr_external_id(vid) << " " << graph.csr_vertex_property(vid) << "\n";
+        }
+    }
     f.close();
 
     if (f.bad()) {

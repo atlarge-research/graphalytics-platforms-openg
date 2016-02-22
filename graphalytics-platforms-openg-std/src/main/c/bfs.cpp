@@ -44,6 +44,13 @@ public:
             return strm << that.level;
         }
     }
+    uint64_t output_value(void)
+    {
+        if (level == MY_INFINITY) 
+            return numeric_limits<int64_t>::max();
+        else
+            return level;
+    }
 };
 class edge_property
 {

@@ -29,6 +29,10 @@ public:
     friend ostream& operator<< (ostream &strm, const vertex_property &that) {
         return strm << that.rank;
     }
+    double output_value(void)
+    {
+        return rank;
+    }
 };
 class edge_property
 {

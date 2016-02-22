@@ -34,6 +34,10 @@ public:
     friend ostream& operator<< (ostream &strm, const vertex_property &that) {
         return strm << that.root;
     }
+    uint64_t output_value(void)
+    {
+        return root;
+    }
 };
 class edge_property
 {

@@ -45,6 +45,10 @@ public:
     friend ostream& operator<< (ostream &strm, const vertex_property &that) {
         return strm << that.distance;
     }
+    distance_t output_value(void)
+    {
+        return distance;
+    }
 };
 class edge_property
 {
