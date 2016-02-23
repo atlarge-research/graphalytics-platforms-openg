@@ -17,11 +17,14 @@ package nl.tudelft.graphalytics.openg;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.exec.CommandLine;
+import org.apache.commons.exec.DefaultExecutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -62,15 +65,15 @@ public class OpenGPlatform implements Platform {
 	public static final String PROPERTIES_FILENAME = PLATFORM_NAME + ".properties";
 
 	public static final String OPENG_INTERMEDIATE_DIR_KEY = "openg.intermediate-dir";
-	public static final String OPENG_OUTPUT_DIR_KEY = "openg.output-dir";
 
 	public static String OPENG_BINARY_DIRECTORY = "./bin/standard";
 
 	protected Configuration opengConfig;
 	protected JobConfiguration jobConfiguration;
-	protected String intermediateGraphDirectory;
+	protected String intermediateDirectory;
 	protected String graphOutputDirectory;
 
+	protected String intermediatePath;
 	protected String currentGraphPath;
 	protected Long2LongMap currentGraphVertexIdTranslation;
 
@@ -99,21 +102,8 @@ public class OpenGPlatform implements Platform {
 		// Parse generic job configuration from the OpenG properties file
 		jobConfiguration = JobConfigurationParser.parseOpenGPropertiesFile(opengConfig);
 
-		intermediateGraphDirectory = ConfigurationUtil.getString(opengConfig, OPENG_INTERMEDIATE_DIR_KEY);
-		graphOutputDirectory = ConfigurationUtil.getString(opengConfig, OPENG_OUTPUT_DIR_KEY);
-
-		ensureDirectoryExists(intermediateGraphDirectory, OPENG_INTERMEDIATE_DIR_KEY);
-		ensureDirectoryExists(graphOutputDirectory, OPENG_OUTPUT_DIR_KEY);
-	}
-
-	private String createIntermediateFile(String name) throws IOException {
-		return Paths.get(intermediateGraphDirectory, name).toString();
-	}
-
-	private void tryDeleteIntermediateFile(String path) {
-		if (!new File(path).delete()) {
-			LOG.warn("failed to delete intermediate file '{}'", path);
-		}
+		intermediateDirectory = ConfigurationUtil.getString(opengConfig, OPENG_INTERMEDIATE_DIR_KEY);
+		ensureDirectoryExists(intermediateDirectory, OPENG_INTERMEDIATE_DIR_KEY);
 	}
 
 	protected static void ensureDirectoryExists(String directory, String property) throws InvalidConfigurationException {
@@ -133,23 +123,62 @@ public class OpenGPlatform implements Platform {
 		LOG.info("Created directory \"{}\" and any missing parent directories", directory);
 	}
 
+	private static boolean deleteDirectory(File dir) {
+	    if(! dir.exists() || !dir.isDirectory())    {
+	        return false;
+	    }
+
+	    String[] files = dir.list();
+	    for(int i = 0, len = files.length; i < len; i++)    {
+	        File f = new File(dir, files[i]);
+	        if(f.isDirectory()) {
+	            deleteDirectory(f);
+	        } else {
+	            f.delete();
+	        }
+	    }
+
+	    return dir.delete();
+	}
+
 	@Override
 	public void uploadGraph(Graph graph) throws Exception {
 		LOG.info("Preprocessing graph \"{}\".", graph.getName());
 
-		//TODO check if this is true.
-		if (graph.getNumberOfVertices() > Integer.MAX_VALUE) {
-			throw new IllegalArgumentException("Graphalytics for OpenG does not currently support graphs with more than " + Integer.MAX_VALUE + " vertices");
+		File dir = new File(intermediateDirectory + "/" + graph.getName());
+
+		if (dir.exists() && dir.isDirectory()) {
+			if (!deleteDirectory(dir)) {
+				throw new Exception("Failed to delete existing directory :" + dir);
+			}
 		}
 
-		currentGraphPath = createIntermediateFile(graph.getName() + ".txt");
+		LOG.info("Creating intermediate directory: " + dir);
+		if (!dir.mkdirs()) {
+			throw new Exception("Failed to create intermediate directory :" + dir);
+		}
 
-		currentGraphVertexIdTranslation = GraphParser.parseGraphAndWriteAdjacencyList(
-				graph.getVertexFilePath(),
-				graph.getEdgeFilePath(),
-				currentGraphPath,
-				graph.isDirected(),
-				(int)graph.getNumberOfVertices());
+		String vertexPath = dir + "/vertex.csv";
+		LOG.info("Creating symbolic link: " + graph.getVertexFilePath() + " -> " + vertexPath);
+		Files.createSymbolicLink(Paths.get(vertexPath), Paths.get(graph.getVertexFilePath()));
+
+		String edgePath = dir + "/edge.csv";
+		LOG.info("Creating symbolic link: " + graph.getEdgeFilePath() + " -> " + edgePath);
+		Files.createSymbolicLink(Paths.get(edgePath), Paths.get(graph.getEdgeFilePath()));
+
+		CommandLine cmd = new CommandLine(OPENG_BINARY_DIRECTORY + "/genCSR");
+		cmd.addArgument("--dataset");
+		cmd.addArgument(dir.getAbsolutePath());
+		cmd.addArgument("--outpath");
+		cmd.addArgument(dir.getAbsolutePath());
+
+		DefaultExecutor executor = new DefaultExecutor();
+		executor.setExitValue(0);
+
+		LOG.info("Executing command: " + cmd.toString());
+		executor.execute(cmd);
+
+		currentGraphPath = dir.getAbsolutePath();
 	}
 
 	@Override
@@ -160,11 +189,9 @@ public class OpenGPlatform implements Platform {
 		Object parameters = benchmark.getAlgorithmParameters();
 
 		OpenGJob job;
-		String outputGraphPath = Paths.get(graphOutputDirectory, graph.getName() + "-" + algorithm).toString();
 		switch (algorithm) {
 			case BFS:
 				long sourceVertex = ((BreadthFirstSearchParameters)parameters).getSourceVertex();
-				sourceVertex = currentGraphVertexIdTranslation.get(sourceVertex);
 				job = new BreadthFirstSearchJob(sourceVertex, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath);
 				break;
 			case CDLP:
@@ -184,22 +211,17 @@ public class OpenGPlatform implements Platform {
 				break;
 			case SSSP:
 				sourceVertex = ((SingleSourceShortestPathsParameters)parameters).getSourceVertex();
-				sourceVertex = currentGraphVertexIdTranslation.get(sourceVertex);
 				job = new SingleSourceShortestPathsJob(sourceVertex, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath);
 				break;
 			default:
-				// TODO: Implement other algorithms
 				throw new PlatformExecutionException("Not yet implemented.");
 		}
 
 		LOG.info("Executing algorithm \"{}\" on graph \"{}\".", algorithm.getName(), graph.getName());
 
-		String intermediateOutputPath = null;
-
 		try {
 			if (benchmark.isOutputRequired()) {
-				intermediateOutputPath = createIntermediateFile("output.txt");
-				job.setOutputPath(intermediateOutputPath);
+				job.setOutputPath(benchmark.getOutputPath());
 			}
 
 			int exitCode = job.execute();
@@ -207,19 +229,8 @@ public class OpenGPlatform implements Platform {
 			if (exitCode != 0) {
 				throw new PlatformExecutionException("OpenG completed with a non-zero exit code: " + exitCode);
 			}
-
-			if (benchmark.isOutputRequired()) {
-				OutputConverter.parseAndWrite(
-						intermediateOutputPath,
-						benchmark.getOutputPath(),
-						currentGraphVertexIdTranslation);
-			}
 		} catch(IOException e) {
 			throw new PlatformExecutionException("Failed to launch OpenG", e);
-		} finally {
-			if (intermediateOutputPath != null) {
-				tryDeleteIntermediateFile(intermediateOutputPath);
-			}
 		}
 
 		return new PlatformBenchmarkResult(NestedConfiguration.empty());
@@ -227,7 +238,9 @@ public class OpenGPlatform implements Platform {
 
 	@Override
 	public void deleteGraph(String graphName) {
-		tryDeleteIntermediateFile(currentGraphPath);
+		if (!deleteDirectory(new File(currentGraphPath))) {
+			LOG.warn("Failed to delete intermediate directory: " + currentGraphPath);
+		}
 	}
 
 	@Override

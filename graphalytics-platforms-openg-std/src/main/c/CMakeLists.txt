@@ -13,10 +13,16 @@ if (GRANULA)
     add_definitions(-DGRANULA=1)
 endif ()
 
+add_definitions (-DUSE_CSR)
+#add_definitions (-DNO_PERF)
+add_definitions (-DNO_PFM)
+add_definitions (-DUSE_OMP)
+add_definitions (-DENABLED_OUTPUT)
+
 include_directories(SYSTEM "${OPENG_HOME}/common")
 include_directories(SYSTEM "${OPENG_HOME}/openG")
 
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -Wno-deprecated -O3 -DNO_PFM -DENABLE_OUTPUT -fopenmp")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -Wno-deprecated -O3 -fopenmp")
 
 add_executable (bfs bfs.cpp)
 add_executable (pr pr.cpp)
@@ -24,4 +30,4 @@ add_executable (cdlp cdlp.cpp)
 add_executable (wcc wcc.cpp)
 add_executable (lcc lcc.cpp)
 add_executable (sssp sssp.cpp)
-
+add_executable (genCSR "${OPENG_HOME}/graphalytics/tool_convert/main.cpp")
