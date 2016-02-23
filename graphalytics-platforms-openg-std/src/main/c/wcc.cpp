@@ -368,7 +368,7 @@ int main(int argc, char * argv[])
     
     if (!output_file.empty()) {
 #ifdef USE_CSR
-        write_csr_graph_vertices(graph, output_file);
+        write_csr_graph_vertices(graph, output_file, true);
 #else
         write_graph_vertices(graph, output_file);
 #endif
