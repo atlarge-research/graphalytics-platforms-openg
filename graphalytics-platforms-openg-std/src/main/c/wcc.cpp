@@ -102,18 +102,23 @@ void parallel_wcc(graph_t &g, unsigned threadnum, vector<vector<uint64_t> > &glo
             for (unsigned i=0;i<input_tasks.size();i++)
             {
                 uint64_t vid=input_tasks[i];
-                for (uint64_t i=0;i<g.csr_in_edges_size(vid);i++)
+                uint64_t size, begin;
+                size = g.csr_in_edges_size(vid);
+                begin = g.csr_in_edges_begin(vid);
+                for (uint64_t i=0;i<size;i++)
                 {
-                    uint64_t dest_vid = g.csr_in_edge(g.csr_in_edges_begin(vid),i);
+                    uint64_t dest_vid = g.csr_in_edge(begin,i);
                     if(g.csr_vertex_property(dest_vid).root > g.csr_vertex_property(vid).root) {
                         __sync_bool_compare_and_swap(&(g.csr_vertex_property(dest_vid).root), g.csr_vertex_property(dest_vid).root, g.csr_vertex_property(vid).root);
                         global_output_tasks[vertex_distributor(dest_vid,threadnum)+tid*threadnum].push_back(dest_vid);
                     }
                 }
 
-                for (uint64_t i=0;i<g.csr_out_edges_size(vid);i++)
+                size = g.csr_out_edges_size(vid);
+                begin = g.csr_out_edges_begin(vid);
+                for (uint64_t i=0;i<size;i++)
                 {
-                    uint64_t dest_vid = g.csr_out_edge(g.csr_out_edges_begin(vid),i);
+                    uint64_t dest_vid = g.csr_out_edge(begin,i);
 
                     bool done = false;
                     while(!done) {

@@ -423,11 +423,11 @@ int main(int argc, char * argv[])
 #endif
 
     // sanity check
-    if (graph.find_vertex(root)==graph.vertices_end())
-    {
-        cerr<<"wrong source vertex: "<<root<<endl;
-        return 0;
-    }
+    //if (graph.find_vertex(root)==graph.vertices_end())
+    //{
+    //    cerr<<"wrong source vertex: "<<root<<endl;
+    //    return 0;
+    //}
 
     cout<<"Shortest Path: source-"<<root;
     cout<<"...\n";
