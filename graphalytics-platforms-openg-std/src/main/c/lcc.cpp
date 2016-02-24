@@ -327,12 +327,6 @@ int main(int argc, char * argv[])
     if (!graph.load_CSR_Graph(path))
         return -1;
 #else
-    /*
-    if (!load_graph_vertices(graph, vfile))
-        return -1;
-    if (!load_graph_edges(graph, efile))
-        return -1;
-    */
     if (!graph.load_csv_vertices(vfile, false, " ", 0))
         return -1;
     if (!graph.load_csv_edges(efile, false, " ", 0, 1))
