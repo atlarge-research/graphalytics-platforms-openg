@@ -43,7 +43,14 @@ public:
     distance_t update;
 
     friend ostream& operator<< (ostream &strm, const vertex_property &that) {
-        return strm << that.distance;
+
+        // According to Graphalytics specifications, SSSP should output
+        // the string 'infinity' if a vertex is unreachable.
+        if (that.distance != MY_INFINITY) {
+            return strm << "infinity";
+        } else {
+            return strm << that.distance;
+        }
     }
 };
 class edge_property
