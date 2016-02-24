@@ -52,6 +52,10 @@ public:
             return strm << that.distance;
         }
     }
+    distance_t output_value(void)
+    {
+        return distance;
+    }
 };
 class edge_property
 {
@@ -82,7 +86,7 @@ public:
     }
 };
 
-
+/*
 void sssp(graph_t& g, size_t src, gBenchPerf_event & perf, int perf_group)
 {
     priority_queue<data_pair, vector<data_pair>, comp> PQ;
@@ -124,11 +128,97 @@ void sssp(graph_t& g, size_t src, gBenchPerf_event & perf, int perf_group)
     perf.stop(perf_group);
     return;
 }
+*/
 
 inline unsigned vertex_distributor(uint64_t vid, unsigned threadnum)
 {
     return vid%threadnum;
 }
+#ifdef USE_CSR
+void parallel_sssp(graph_t& g, size_t root, unsigned threadnum, gBenchPerf_multi & perf, int perf_group)
+{
+    g.csr_vertex_property(root).distance = 0;
+    g.csr_vertex_property(root).update = 0;
+
+    bool * locks = new bool[g.num_vertices()];
+    memset(locks, 0, sizeof(bool)*g.num_vertices());
+
+    vector<vector<uint64_t> > global_input_tasks(threadnum);
+    global_input_tasks[vertex_distributor(root,threadnum)].push_back(root);
+
+    vector<vector<uint64_t> > global_output_tasks(threadnum*threadnum);
+
+
+    bool stop = false;
+    #pragma omp parallel num_threads(threadnum) shared(stop,global_input_tasks,global_output_tasks)
+    {
+        unsigned tid = omp_get_thread_num();
+        vector<uint64_t> & input_tasks = global_input_tasks[tid];
+
+        perf.open(tid, perf_group);
+        perf.start(tid, perf_group);
+        while(!stop)
+        {
+            #pragma omp barrier
+            // process local queue
+            stop = true;
+            for (unsigned i=0;i<input_tasks.size();i++)
+            {
+                uint64_t vid=input_tasks[i];
+
+                distance_t curr_dist = g.csr_vertex_property(vid).distance;
+
+                uint64_t edges_begin = g.csr_out_edges_begin(vid);
+                for (uint64_t i=0;i<g.csr_out_edges_size(vid);i++)
+                {
+                    uint64_t dest_vid = g.csr_out_edge(edges_begin,i);
+                    distance_t new_dist = curr_dist + g.csr_out_edge_weight(edges_begin, i);
+                    bool active=false;
+
+                    // spinning lock for critical section
+                    //  can be replaced as an atomicMin operation
+                    while(__sync_lock_test_and_set(&(locks[dest_vid]),1));
+                    if (g.csr_vertex_property(dest_vid).update>new_dist)
+                    {
+                        active = true;
+                        g.csr_vertex_property(dest_vid).update = new_dist;
+                    }
+                    __sync_lock_release(&(locks[dest_vid]));
+
+                    if (active)
+                    {
+                        global_output_tasks[vertex_distributor(dest_vid,threadnum)+tid*threadnum].push_back(dest_vid);
+                    }
+                }
+            }
+            #pragma omp barrier
+            input_tasks.clear();
+            for (unsigned i=0;i<threadnum;i++)
+            {
+                if (global_output_tasks[i*threadnum+tid].size()!=0)
+                {
+                    stop = false;
+                    input_tasks.insert(input_tasks.end(),
+                            global_output_tasks[i*threadnum+tid].begin(),
+                            global_output_tasks[i*threadnum+tid].end());
+                    global_output_tasks[i*threadnum+tid].clear();
+                }
+            }
+            for (unsigned i=0;i<input_tasks.size();i++)
+            {
+                uint64_t vid = input_tasks[i];
+                g.csr_vertex_property(vid).distance = g.csr_vertex_property(vid).update;
+            }
+            #pragma omp barrier
+        }
+        perf.stop(tid, perf_group);
+    }
+
+
+    delete[] locks;
+}
+
+#else
 void parallel_sssp(graph_t& g, size_t root, unsigned threadnum, gBenchPerf_multi & perf, int perf_group)
 {
     vertex_iterator rootvit=g.find_vertex(root);
@@ -228,7 +318,7 @@ void parallel_sssp(graph_t& g, size_t root, unsigned threadnum, gBenchPerf_multi
 
     delete[] locks;
 }
-
+#endif
 //==============================================================//
 void output(graph_t& g)
 {
@@ -312,12 +402,15 @@ int main(int argc, char * argv[])
     t1 = timer::get_usec();
     string vfile = path + "/vertex.csv";
     string efile = path + "/edge.csv";
-
-
-    if (!load_graph_vertices(graph, vfile))
+#ifdef USE_CSR
+    if (!graph.load_CSR_Graph(path))
         return -1;
-    if (!load_graph_edges(graph, efile, &edge_parser))
+#else
+    if (!graph.load_csv_vertices(vfile, false, " ", 0))
         return -1;
+    if (!graph.load_csv_edges(efile, false, " ", 0, 1))
+        return -1;
+#endif
 
     size_t vertex_num = graph.num_vertices();
     size_t edge_num = graph.num_edges();
@@ -330,11 +423,11 @@ int main(int argc, char * argv[])
 #endif
 
     // sanity check
-    if (graph.find_vertex(root)==graph.vertices_end())
-    {
-        cerr<<"wrong source vertex: "<<root<<endl;
-        return 0;
-    }
+    //if (graph.find_vertex(root)==graph.vertices_end())
+    //{
+    //    cerr<<"wrong source vertex: "<<root<<endl;
+    //    return 0;
+    //}
 
     cout<<"Shortest Path: source-"<<root;
     cout<<"...\n";
@@ -352,10 +445,7 @@ int main(int argc, char * argv[])
     {
         t1 = timer::get_usec();
 
-        if (threadnum==1)
-            sssp(graph, root, perf, i);
-        else
-            parallel_sssp(graph, root, threadnum, perf_multi, i);
+        parallel_sssp(graph, root, threadnum, perf_multi, i);
 
         t2 = timer::get_usec();
         elapse_time += t2-t1;
@@ -379,7 +469,11 @@ int main(int argc, char * argv[])
     arg.get_value("output", output_file);
 
     if (!output_file.empty()) {
+#ifdef USE_CSR
+        write_csr_graph_vertices(graph, output_file);
+#else
         write_graph_vertices(graph, output_file);
+#endif
     }
 
 #ifdef GRANULA

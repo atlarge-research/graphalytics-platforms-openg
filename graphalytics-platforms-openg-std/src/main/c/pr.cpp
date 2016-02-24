@@ -29,6 +29,10 @@ public:
     friend ostream& operator<< (ostream &strm, const vertex_property &that) {
         return strm << that.rank;
     }
+    double output_value(void)
+    {
+        return rank;
+    }
 };
 class edge_property
 {
@@ -54,7 +58,92 @@ inline unsigned vertex_distributor(uint64_t vid, unsigned threadnum)
 {
     return vid%threadnum;
 }
+#ifdef USE_CSR
+void parallel_init(graph_t& g, unsigned threadnum,
+                   vector<vector<uint64_t> >& global_input_tasks)
+{
+    global_input_tasks.resize(threadnum);
+    for (uint64_t vid=0;vid<g.vertex_num();vid++)
+    {
+        size_t degree = g.csr_out_edges_size(vid);
+        g.csr_vertex_property(vid).degree = degree;
+        g.csr_vertex_property(vid).rank = 1.0 / g.num_vertices();
+        g.csr_vertex_property(vid).sum = 0.0;
 
+        global_input_tasks[vertex_distributor(vid, threadnum)].push_back(vid);
+
+    }
+}
+
+void parallel_pagerank(graph_t &g, size_t iteration, double damping_factor, unsigned threadnum,
+                       vector<vector<uint64_t> > &global_input_tasks,
+                       gBenchPerf_multi &perf, int perf_group)
+{
+    vector<vector<uint64_t> > global_output_tasks(threadnum*threadnum);
+    size_t step = 0;
+    bool stop = false;
+    double dangling_sum = 0.0;
+    #pragma omp parallel num_threads(threadnum) shared(stop,global_input_tasks,global_output_tasks)
+    {
+        unsigned tid = omp_get_thread_num();
+        vector<uint64_t> & input_tasks = global_input_tasks[tid];
+
+        perf.open(tid, perf_group);
+        perf.start(tid, perf_group);
+        while(!stop)
+        {
+
+            for (unsigned i=0;i<input_tasks.size();i++)
+            {
+                uint64_t vid=input_tasks[i];
+
+                if(g.csr_vertex_property(vid).degree <= 0) {
+                    #pragma omp atomic
+                    dangling_sum += g.csr_vertex_property(vid).rank;
+                }
+            }
+
+            #pragma omp barrier
+            for (unsigned i=0;i<input_tasks.size();i++)
+            {
+                uint64_t vid=input_tasks[i];
+
+                for (uint64_t i=0;i<g.csr_out_edges_size(vid);i++)
+                {
+                    uint64_t dest_vid = g.csr_out_edge(g.csr_out_edges_begin(vid), i);
+
+                    #pragma omp atomic
+                    g.csr_vertex_property(dest_vid).sum += g.csr_vertex_property(vid).rank / g.csr_vertex_property(vid).degree;
+                }
+            }
+
+            #pragma omp barrier
+            for (unsigned i=0;i<input_tasks.size();i++)
+            {
+                uint64_t vid=input_tasks[i];
+
+                g.csr_vertex_property(vid).rank = (1.0 - damping_factor) / g.num_vertices() +
+                                       damping_factor * (g.csr_vertex_property(vid).sum + dangling_sum / g.num_vertices());
+                g.csr_vertex_property(vid).sum = 0;
+                global_output_tasks[vertex_distributor(vid,threadnum)+tid*threadnum].push_back(vid);
+            }
+            #pragma omp barrier
+            dangling_sum = 0;
+
+            if(tid==0) {
+                step++;
+
+                if(step >= iteration) {
+                    stop = true;
+                }
+            }
+            #pragma omp barrier
+        }
+        perf.stop(tid, perf_group);
+    }
+}
+
+#else
 void parallel_init(graph_t& g, unsigned threadnum,
                    vector<vector<uint64_t> >& global_input_tasks)
 {
@@ -143,6 +232,7 @@ void parallel_pagerank(graph_t &g, size_t iteration, double damping_factor, unsi
         perf.stop(tid, perf_group);
     }
 }
+#endif
 //==============================================================//
 void output(graph_t& g)
 {
@@ -205,11 +295,15 @@ int main(int argc, char * argv[])
     t1 = timer::get_usec();
     string vfile = path + "/vertex.csv";
     string efile = path + "/edge.csv";
-
-    if (!load_graph_vertices(graph, vfile))
+#ifdef USE_CSR
+    if (!graph.load_CSR_Graph(path))
         return -1;
-    if (!load_graph_edges(graph, efile))
+#else
+    if (!graph.load_csv_vertices(vfile, false, " ", 0))
         return -1;
+    if (!graph.load_csv_edges(efile, false, " ", 0, 1))
+        return -1;
+#endif
 
     size_t vertex_num = graph.num_vertices();
     size_t edge_num = graph.num_edges();
@@ -263,7 +357,11 @@ int main(int argc, char * argv[])
     arg.get_value("output", output_file);
 
     if (!output_file.empty()) {
+#ifdef USE_CSR
+        write_csr_graph_vertices(graph, output_file);
+#else
         write_graph_vertices(graph, output_file);
+#endif
     }
 
 #ifdef GRANULA

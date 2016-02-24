@@ -87,6 +87,7 @@ public abstract class OpenGJob {
 
 		Executor executor = createCommandExecutor();
 		executor.setStreamHandler(new PumpStreamHandler(System.out));
+		executor.setExitValue(0);
 		return executor.execute(commandLine);
 	}
 
