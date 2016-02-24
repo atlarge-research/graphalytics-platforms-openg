@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <unordered_set>
 #include <unordered_map>
+#include <set>
 
 #ifdef GRANULA
 #include "granula.hpp"
@@ -26,7 +27,11 @@ public:
     vertex_property():count(0){}
 
     unsigned long count;
+#ifdef USE_CSR
+    vector<uint64_t> unq_set;
+#else
     unordered_set<uint64_t> unq_set;
+#endif
     double lcc;
 
     friend ostream& operator<< (ostream &strm, const vertex_property &that) {
@@ -75,21 +80,26 @@ size_t get_intersect_cnt(unordered_set<uint64_t> & setA, vertex_iterator & vit_t
     return setC.size();
 }
 #ifdef USE_CSR
-size_t get_intersect_cnt(unordered_set<uint64_t> & setA, uint64_t vid, graph_t& g)
+size_t get_intersect_cnt(vector<uint64_t>& setA, vector<uint64_t>& setB)
 {
-    unordered_set<uint64_t> setC;
-    setC.clear();
+    size_t ret=0;
+    vector<uint64_t>::iterator iter1=setA.begin(), iter2=setB.begin();
 
-    for ( auto it1 = setA.begin(); it1 != setA.end(); ++it1 ) {
-        for (uint64_t i=0;i<g.csr_out_edges_size(vid);i++)
+    while (iter1!=setA.end() && iter2!=setB.end()) 
+    {
+        if ((*iter1) < (*iter2)) 
+            iter1++;
+        else if ((*iter1) > (*iter2)) 
+            iter2++;
+        else
         {
-            uint64_t targ = g.csr_out_edge(g.csr_out_edges_begin(vid),i);
-            if(*it1 == targ)
-                setC.insert(targ);
+            ret++;
+            iter1++;
+            iter2++;
         }
-
     }
-    return setC.size();
+
+    return ret;
 }
 void gen_workset(graph_t& g, vector<unsigned>& workset, unsigned threadnum)
 {
@@ -111,32 +121,32 @@ void gen_workset(graph_t& g, vector<unsigned>& workset, unsigned threadnum)
     workset[threadnum] = g.num_vertices();
 }
 
-void parallel_lcc_init(graph_t &g, unsigned threadnum)
+void parallel_lcc_init(graph_t &g, unsigned threadnum,
+        vector<unsigned> &workset)
 {
-    vector<unsigned> ws;
-    gen_workset(g, ws, threadnum);
 
     #pragma omp parallel num_threads(threadnum)
     {
         unsigned tid = omp_get_thread_num();
+        unsigned start = workset[tid];
+        unsigned end = workset[tid+1];
+        if (end > g.num_vertices()) end = g.num_vertices();
 
         // prepare neighbor set for each vertex
-        for (uint64_t vid=ws[tid];vid<ws[tid+1];vid++)
+        for (uint64_t vid=start;vid<end;vid++)
         {
-            if (vid >= g.vertex_num()) continue;
-
             g.csr_vertex_property(vid).count = 0;
 
-            unordered_set<uint64_t>& cur_set = g.csr_vertex_property(vid).unq_set;
-            cur_set.reserve(g.csr_in_edges_size(vid) + g.csr_out_edges_size(vid));
-            for (uint64_t i=0;i<g.csr_in_edges_size(vid);i++)
+            vector<uint64_t>& cur_set = g.csr_vertex_property(vid).unq_set;
+
+            uint64_t size = g.csr_out_edges_size(vid);
+            uint64_t begin = g.csr_out_edges_begin(vid);
+            cur_set.reserve(size);
+            for (uint64_t i=0;i<size;i++)
             {
-                cur_set.insert(g.csr_in_edge(g.csr_in_edges_begin(vid),i));
+                cur_set.push_back(g.csr_out_edge(begin,i));
             }
-            for (uint64_t i=0;i<g.csr_out_edges_size(vid);i++)
-            {
-                cur_set.insert(g.csr_out_edge(g.csr_out_edges_begin(vid),i));
-            }
+            std::sort(cur_set.begin(), cur_set.end());
         }
     }
 }
@@ -159,12 +169,16 @@ void parallel_lcc(graph_t &g, unsigned threadnum, vector<unsigned> &workset,
         // run lcc now
         for (uint64_t vid=start;vid<end;vid++)
         {
-            for (auto it = g.csr_vertex_property(vid).unq_set.begin(); it != g.csr_vertex_property(vid).unq_set.end(); ++it) {
-                size_t cnt = get_intersect_cnt(g.csr_vertex_property(vid).unq_set, *it, g);
+            uint64_t size = g.csr_out_edges_size(vid);
+            uint64_t begin = g.csr_out_edges_begin(vid);
+            for (uint64_t i=0;i<size;i++)
+            {
+                uint64_t dest_vid = g.csr_out_edge(begin, i);
+                size_t cnt = get_intersect_cnt(g.csr_vertex_property(vid).unq_set, g.csr_vertex_property(dest_vid).unq_set);
                 __sync_fetch_and_add(&(g.csr_vertex_property(vid).count), cnt);
             }
 
-            int degree = g.csr_vertex_property(vid).unq_set.size();
+            size_t degree = size;
             g.csr_vertex_property(vid).lcc = 0;
             if(degree >= 2) {
                 g.csr_vertex_property(vid).lcc = (double) g.csr_vertex_property(vid).count / (degree * (degree - 1));
@@ -351,9 +365,13 @@ int main(int argc, char * argv[])
 
     cout<<"\ninitializing lcc"<<endl;
     vector<unsigned> workset;
+#ifdef USE_CSR
+    gen_workset(graph, workset, threadnum);
+    parallel_lcc_init(graph, threadnum, workset);
+#else
     parallel_lcc_init(graph, threadnum);
     gen_workset(graph, workset, threadnum);
-
+#endif
     cout<<"\ncomputing lcc..."<<endl;
 
     gBenchPerf_multi perf_multi(threadnum, perf);
