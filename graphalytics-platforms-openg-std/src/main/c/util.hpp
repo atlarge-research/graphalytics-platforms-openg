@@ -50,6 +50,9 @@ bool write_graph_vertices(G &graph, const std::string &file) {
 
     return true;
 }
+
+#ifdef USE_CSR
+
 template <typename G>
 bool write_csr_graph_vertices(G &graph, const std::string &file, bool value_convert=false) {
     std::ofstream f(file.c_str());
@@ -85,5 +88,27 @@ bool write_csr_graph_vertices(G &graph, const std::string &file, bool value_conv
     return true;
 }
 
+template <typename G>
+bool csr_external_to_internal_id(size_t threadnum, G &graph, uint64_t ext_id, uint64_t &int_id) {
+    size_t vertex_num = graph.vertex_num();
+    bool success = false;
+    uint64_t result_id = true;
+
+    #pragma omp parallel num_threads(threadnum)
+    for (uint64_t vid = 0; vid < vertex_num; vid++) {
+        if (graph.csr_external_id(vid) == ext_id) {
+            #pragma omp critical
+            {
+                success = true;
+                result_id = vid;
+            }
+        }
+    }
+
+    int_id = result_id;
+    return success;
+}
+
+#endif
 
 #endif
