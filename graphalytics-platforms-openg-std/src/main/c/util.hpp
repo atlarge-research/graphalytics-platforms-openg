@@ -10,22 +10,6 @@
 
 #include "openG.h"
 
-static bool safe_strtoull(const char **str, size_t &val) {
-    const char *before = *str;
-    char *after;
-
-    val = strtoull(before, &after, 10);
-    *str = after;
-
-    return before < after;
-}
-
-static void skip_whitespace(const char **str) {
-    while (isspace(**str)) {
-        (*str)++;
-    }
-}
-
 template <typename G>
 bool write_graph_vertices(G &graph, const std::string &file) {
     typedef typename G::vertex_iterator vertex_iterator;
