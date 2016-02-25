@@ -422,12 +422,16 @@ int main(int argc, char * argv[])
     cout<<loadGraph.getOperationInfo("EndTime", loadGraph.getEpoch())<<endl;
 #endif
 
-    // sanity check
-    //if (graph.find_vertex(root)==graph.vertices_end())
-    //{
-    //    cerr<<"wrong source vertex: "<<root<<endl;
-    //    return 0;
-    //}
+#ifdef USE_CSR
+    uint64_t newroot;
+
+    if (!csr_external_to_internal_id(threadnum, graph, root, newroot)) {
+        cerr << "failed find vertex with external id: " << root << endl;
+        return 1;
+    }
+
+    root = newroot;
+#endif
 
     cout<<"Shortest Path: source-"<<root;
     cout<<"...\n";

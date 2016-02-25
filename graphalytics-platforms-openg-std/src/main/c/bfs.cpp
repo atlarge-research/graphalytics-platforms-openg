@@ -293,6 +293,17 @@ int main(int argc, char * argv[])
     cout<<loadGraph.getOperationInfo("EndTime", loadGraph.getEpoch())<<endl;
 #endif
 
+#ifdef USE_CSR
+    uint64_t newroot;
+
+    if (!csr_external_to_internal_id(threadnum, graph, root, newroot)) {
+        cerr << "failed find vertex with external id: " << root << endl;
+        return 1;
+    }
+
+    root = newroot;
+#endif
+
     cout<<"\nBFS root: "<<root<<"\n";
 
     gBenchPerf_multi perf_multi(threadnum, perf);
