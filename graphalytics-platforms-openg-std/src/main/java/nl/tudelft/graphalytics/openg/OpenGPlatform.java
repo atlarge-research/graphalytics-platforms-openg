@@ -42,6 +42,8 @@ import nl.tudelft.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
 import nl.tudelft.graphalytics.domain.algorithms.CommunityDetectionLPParameters;
 import nl.tudelft.graphalytics.domain.algorithms.PageRankParameters;
 import nl.tudelft.graphalytics.domain.algorithms.SingleSourceShortestPathsParameters;
+import nl.tudelft.graphalytics.domain.graph.PropertyList;
+import nl.tudelft.graphalytics.domain.graph.PropertyType;
 import nl.tudelft.graphalytics.openg.algorithms.bfs.BreadthFirstSearchJob;
 import nl.tudelft.graphalytics.openg.algorithms.cdlp.CommunityDetectionLPJob;
 import nl.tudelft.graphalytics.openg.algorithms.lcc.LocalClusteringCoefficientJob;
@@ -145,6 +147,23 @@ public class OpenGPlatform implements Platform {
 	public void uploadGraph(Graph graph) throws Exception {
 		LOG.info("Preprocessing graph \"{}\".", graph.getName());
 
+		if (graph.hasVertexProperties()) {
+			throw new IllegalArgumentException("OpenG does not support vertices with properties");
+		}
+
+		if (graph.hasEdgeProperties()) {
+			PropertyList list = graph.getEdgeProperties();
+
+			if (list.size() > 1) {
+				throw new IllegalArgumentException("OpenG does not support more than one edge property");
+			}
+
+			if (list.get(0).getType().equals(PropertyType.REAL)) {
+				throw new IllegalArgumentException("OpenG does not support edge properties of type: "
+						+ list.get(0).getType());
+			}
+		}
+
 		File dir = new File(intermediateDirectory + "/" + graph.getName());
 
 		if (dir.exists() && dir.isDirectory()) {
@@ -171,6 +190,10 @@ public class OpenGPlatform implements Platform {
 		cmd.addArgument(dir.getAbsolutePath());
 		cmd.addArgument("--outpath");
 		cmd.addArgument(dir.getAbsolutePath());
+		cmd.addArgument("--undirected");
+		cmd.addArgument(graph.isDirected() ? "0" : "1");
+		cmd.addArgument("--weight");
+		cmd.addArgument(graph.hasEdgeProperties() ? "1" : "0");
 
 		DefaultExecutor executor = new DefaultExecutor();
 		executor.setExitValue(0);
