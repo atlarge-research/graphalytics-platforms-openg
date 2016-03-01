@@ -46,7 +46,7 @@ public:
 
         // According to Graphalytics specifications, SSSP should output
         // the string 'infinity' if a vertex is unreachable.
-        if (that.distance != MY_INFINITY) {
+        if (that.distance == MY_INFINITY) {
             return strm << "infinity";
         } else {
             return strm << that.distance;

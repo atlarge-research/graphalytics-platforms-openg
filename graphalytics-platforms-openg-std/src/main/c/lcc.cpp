@@ -120,6 +120,11 @@ void gen_workset(graph_t& g, vector<unsigned>& workset, unsigned threadnum)
         }
     }
     workset[threadnum] = g.num_vertices();
+    for (unsigned i=threadnum-1;i>=1;i--)
+    {
+        if (workset[i]==0)
+            workset[i]=workset[i+1];
+    }
 }
 
 void parallel_lcc_init(graph_t &g, unsigned threadnum,
@@ -214,6 +219,11 @@ void gen_workset(graph_t& g, vector<unsigned>& workset, unsigned threadnum)
         }
     }
     workset[threadnum] = g.num_vertices();
+    for (unsigned i=threadnum-1;i>=1;i--)
+    {
+        if (workset[i]==0)
+            workset[i]=workset[i+1];
+    }
 }
 
 void parallel_lcc_init(graph_t &g, unsigned threadnum)
