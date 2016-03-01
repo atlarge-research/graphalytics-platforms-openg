@@ -1,7 +1,7 @@
 ## Generate a symlink in current directory to graphbig 
 GRAPHBIG_ROOT=./graphbig
 
-UNIT_TEST_TARGETS=bfs cdlp lcc pr sssp wcc
+UNIT_TEST_TARGETS=bfs cdlp pr sssp wcc lcc
 
 CXX_FLAGS+=-std=c++0x -Wall -Wno-deprecated
 INCLUDE+=-I${GRAPHBIG_ROOT}/common -I${GRAPHBIG_ROOT}/openG -I${GRAPHBIG_ROOT}/csr_bench/lib
@@ -70,8 +70,13 @@ ${UNIT_TEST_TARGETS}:
 run: ${UNIT_TEST_TARGETS}
 	@for i in ${UNIT_TEST_TARGETS}; do  \
 		echo "Running $$i, output in $$i.log"; \
-		./$$i --dataset ./test  --output $$i.out > $$i.log 2>&1; \
+		./$$i --dataset ./verify/d  --output d-$$i.out --threadnum 4 > d-$$i.log 2>&1; \
 	done	
+	@for i in ${UNIT_TEST_TARGETS}; do  \
+		echo "Running $$i, output in $$i.log"; \
+		./$$i --dataset ./verify/ud  --output ud-$$i.out --threadnum 4 > ud-$$i.log 2>&1; \
+	done	
+
 
 clean:
 	@-/bin/rm -rf ${ALL_TARGETS} ${GENERATED_DIRS} *.o *~ core core.* 

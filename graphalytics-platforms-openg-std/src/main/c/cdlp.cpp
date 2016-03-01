@@ -62,15 +62,39 @@ inline unsigned vertex_distributor(uint64_t vid, unsigned threadnum)
 }
 #ifdef USE_CSR
 void parallel_init(graph_t& g, unsigned threadnum,
-                   vector<vector<uint64_t> >& global_input_tasks)
+                   vector<uint64_t> & workset)
 {
-    global_input_tasks.resize(threadnum);
-    for (uint64_t vid=0;vid<g.vertex_num();vid++)
+    #pragma omp parallel num_threads(threadnum)
     {
-        g.csr_vertex_property(vid).label = vid;
-        global_input_tasks[vertex_distributor(vid, threadnum)].push_back(vid);
+        unsigned tid = omp_get_thread_num();
+        unsigned start = workset[tid];
+        unsigned end = workset[tid+1];
+
+        for (uint64_t vid=start;vid<end;vid++)
+        {
+            g.csr_vertex_property(vid).label = vid;
+        }
 
     }
+}
+void gen_workset(graph_t& g, vector<uint64_t>& workset, unsigned threadnum)
+{
+    unsigned chunk = (unsigned)ceil(g.num_edges()/(double)threadnum);
+    unsigned last=0, curr=0, th=1;
+    workset.clear();
+    workset.resize(threadnum+1,0);
+    for (uint64_t vid=0;vid<g.vertex_num();vid++)
+    {
+        curr += g.csr_out_edges_size(vid);
+
+        if ((curr-last)>=chunk)
+        {
+            last = curr;
+            workset[th] = vid;
+            if (th<threadnum) th++;
+        }
+    }
+    workset[threadnum] = g.num_vertices();
 }
 #else
 void parallel_init(graph_t& g, unsigned threadnum,
@@ -87,26 +111,28 @@ void parallel_init(graph_t& g, unsigned threadnum,
 #endif
 #ifdef USE_CSR
 void parallel_cdlp(graph_t &g, size_t iteration, unsigned threadnum,
-                   vector<vector<uint64_t> > &global_input_tasks,
+                    vector<uint64_t> & workset,
+                   //vector<vector<uint64_t> > &global_input_tasks,
                    gBenchPerf_multi &perf, int perf_group)
 {
-    vector<vector<uint64_t> > global_output_tasks(threadnum*threadnum);
+    //vector<vector<uint64_t> > global_output_tasks(threadnum*threadnum);
     size_t step = 0;
     bool stop = false;
-    #pragma omp parallel num_threads(threadnum) shared(stop,global_input_tasks,global_output_tasks)
+    #pragma omp parallel num_threads(threadnum) shared(stop,workset)
     {
         unsigned tid = omp_get_thread_num();
-        vector<uint64_t> & input_tasks = global_input_tasks[tid];
+        unsigned start = workset[tid];
+        unsigned end = workset[tid+1];
 
         perf.open(tid, perf_group);
         perf.start(tid, perf_group);
+
         while(!stop)
         {
 
             #pragma omp barrier
-            for (unsigned i=0;i<input_tasks.size();i++)
+            for (unsigned vid=start;vid<end;vid++)
             {
-                uint64_t vid=input_tasks[i];
                 unordered_map<uint64_t, uint64_t> histogram;
                 uint64_t edges_begin = g.csr_in_edges_begin(vid);
                 uint64_t size = g.csr_in_edges_size(vid);
@@ -148,13 +174,11 @@ void parallel_cdlp(graph_t &g, size_t iteration, unsigned threadnum,
                 g.csr_vertex_property(vid).next_label = bestLabel;
 
                 histogram.clear();
-                global_output_tasks[vertex_distributor(vid,threadnum)+tid*threadnum].push_back(vid);
             }
 
             #pragma omp barrier
-            for (unsigned i=0;i<input_tasks.size();i++)
+            for (unsigned vid=start;vid<end;vid++)
             {
-                uint64_t vid=input_tasks[i];
                 g.csr_vertex_property(vid).label = g.csr_vertex_property(vid).next_label;
             }
 
@@ -349,6 +373,13 @@ int main(int argc, char * argv[])
     if (run_num==0) run_num = 1;
     double elapse_time = 0;
 
+    vector<uint64_t> workset;
+#ifdef USE_CSR
+    gen_workset(graph, workset, threadnum);
+    parallel_init(graph, threadnum, workset);
+#endif
+
+
 #ifdef GRANULA
     cout<<processGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
 #endif
@@ -357,11 +388,15 @@ int main(int argc, char * argv[])
     {
         queue<vertex_iterator> process_q;
         vector<vector<uint64_t> > global_input_tasks(threadnum);
-
+#ifndef USE_CSR
         parallel_init(graph,threadnum,global_input_tasks);
-
+#endif
         t1 = timer::get_usec();
+#ifdef USE_CSR
+        parallel_cdlp(graph, iteration, threadnum, workset, perf_multi, i);
+#else        
         parallel_cdlp(graph, iteration, threadnum, global_input_tasks, perf_multi, i);
+#endif
         t2 = timer::get_usec();
         elapse_time += t2-t1;
         if ((i+1)<run_num) reset_graph(graph);
@@ -385,7 +420,7 @@ int main(int argc, char * argv[])
 
     if (!output_file.empty()) {
 #ifdef USE_CSR
-        write_csr_graph_vertices(graph, output_file);
+        write_csr_graph_vertices(graph, output_file, true);
 #else
         write_graph_vertices(graph, output_file);
 #endif
