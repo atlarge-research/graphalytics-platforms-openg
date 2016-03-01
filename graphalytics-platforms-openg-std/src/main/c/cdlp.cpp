@@ -95,6 +95,11 @@ void gen_workset(graph_t& g, vector<uint64_t>& workset, unsigned threadnum)
         }
     }
     workset[threadnum] = g.num_vertices();
+    for (unsigned i=threadnum-1;i>=1;i--)
+    {
+        if (workset[i]==0)
+            workset[i]=workset[i+1];
+    }
 }
 #else
 void parallel_init(graph_t& g, unsigned threadnum,
