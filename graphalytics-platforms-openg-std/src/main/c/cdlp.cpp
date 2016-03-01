@@ -126,11 +126,6 @@ void parallel_cdlp(graph_t &g, size_t iteration, unsigned threadnum,
 
         perf.open(tid, perf_group);
         perf.start(tid, perf_group);
-        for (unsigned vid=start;vid<end;vid++)
-            {
-                cout<<g.csr_vertex_property(vid).label<<" ";
-            }
-        cout<<endl<<endl;
 
         while(!stop)
         {
@@ -185,9 +180,7 @@ void parallel_cdlp(graph_t &g, size_t iteration, unsigned threadnum,
             for (unsigned vid=start;vid<end;vid++)
             {
                 g.csr_vertex_property(vid).label = g.csr_vertex_property(vid).next_label;
-                cout<<g.csr_vertex_property(vid).label<<" ";
             }
-            cout<<endl;
 
             #pragma omp barrier
             if(tid==0) {
