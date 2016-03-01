@@ -28,7 +28,8 @@ public:
 
     unsigned long count;
 #ifdef USE_CSR
-    vector<uint64_t> unq_set;
+    set<uint64_t> unq_set;
+    set<uint64_t> out_set;
 #else
     unordered_set<uint64_t> unq_set;
 #endif
@@ -80,10 +81,10 @@ size_t get_intersect_cnt(unordered_set<uint64_t> & setA, vertex_iterator & vit_t
     return setC.size();
 }
 #ifdef USE_CSR
-size_t get_intersect_cnt(vector<uint64_t>& setA, vector<uint64_t>& setB)
+size_t get_intersect_cnt(set<uint64_t>& setA, set<uint64_t>& setB)
 {
     size_t ret=0;
-    vector<uint64_t>::iterator iter1=setA.begin(), iter2=setB.begin();
+    set<uint64_t>::iterator iter1=setA.begin(), iter2=setB.begin();
 
     while (iter1!=setA.end() && iter2!=setB.end()) 
     {
@@ -137,16 +138,23 @@ void parallel_lcc_init(graph_t &g, unsigned threadnum,
         {
             g.csr_vertex_property(vid).count = 0;
 
-            vector<uint64_t>& cur_set = g.csr_vertex_property(vid).unq_set;
+            set<uint64_t>& cur_set = g.csr_vertex_property(vid).unq_set;
+            set<uint64_t>& out_set = g.csr_vertex_property(vid).out_set;
 
             uint64_t size = g.csr_out_edges_size(vid);
             uint64_t begin = g.csr_out_edges_begin(vid);
-            cur_set.reserve(size);
             for (uint64_t i=0;i<size;i++)
             {
-                cur_set.push_back(g.csr_out_edge(begin,i));
+                cur_set.insert(g.csr_out_edge(begin,i));
+                out_set.insert(g.csr_out_edge(begin,i));
             }
-            std::sort(cur_set.begin(), cur_set.end());
+            size = g.csr_in_edges_size(vid);
+            begin = g.csr_in_edges_begin(vid);
+            for (uint64_t i=0;i<size;i++)
+            {
+                cur_set.insert(g.csr_in_edge(begin,i));
+            }
+
         }
     }
 }
@@ -169,16 +177,14 @@ void parallel_lcc(graph_t &g, unsigned threadnum, vector<unsigned> &workset,
         // run lcc now
         for (uint64_t vid=start;vid<end;vid++)
         {
-            uint64_t size = g.csr_out_edges_size(vid);
-            uint64_t begin = g.csr_out_edges_begin(vid);
-            for (uint64_t i=0;i<size;i++)
+            for (auto it = g.csr_vertex_property(vid).unq_set.begin(); it != g.csr_vertex_property(vid).unq_set.end(); ++it)
             {
-                uint64_t dest_vid = g.csr_out_edge(begin, i);
-                size_t cnt = get_intersect_cnt(g.csr_vertex_property(vid).unq_set, g.csr_vertex_property(dest_vid).unq_set);
+                uint64_t dest_vid = *it;
+                size_t cnt = get_intersect_cnt(g.csr_vertex_property(vid).unq_set, g.csr_vertex_property(dest_vid).out_set);
                 __sync_fetch_and_add(&(g.csr_vertex_property(vid).count), cnt);
             }
 
-            size_t degree = size;
+            size_t degree = g.csr_vertex_property(vid).unq_set.size();
             g.csr_vertex_property(vid).lcc = 0;
             if(degree >= 2) {
                 g.csr_vertex_property(vid).lcc = (double) g.csr_vertex_property(vid).count / (degree * (degree - 1));
