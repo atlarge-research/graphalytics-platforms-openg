@@ -171,7 +171,7 @@ void parallel_cdlp(graph_t &g, size_t iteration, unsigned threadnum,
                 for ( auto it = histogram.begin(); it != histogram.end(); ++it ) {
                     uint64_t label = it->first;
                     uint64_t freq = it->second;
-                    if (freq > highest_freq || (freq == highest_freq && label < bestLabel)) {
+                    if (freq > highest_freq || (freq == highest_freq &&  g.csr_external_id(label) < g.csr_external_id(bestLabel))) {
                         bestLabel = label;
                         highest_freq = freq;
                     }
