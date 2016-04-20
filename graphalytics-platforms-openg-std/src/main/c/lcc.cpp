@@ -14,6 +14,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <set>
+#include <iomanip>
 
 #ifdef GRANULA
 #include "granula.hpp"
@@ -36,7 +37,7 @@ public:
     double lcc;
 
     friend ostream& operator<< (ostream &strm, const vertex_property &that) {
-        return strm << that.lcc;
+        return strm << scientific << setprecision(15) << that.lcc;
     }
     double output_value(void)
     {

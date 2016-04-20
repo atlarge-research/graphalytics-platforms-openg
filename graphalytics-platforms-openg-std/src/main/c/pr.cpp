@@ -9,6 +9,7 @@
 #include <queue>
 #include "omp.h"
 #include <stdint.h>
+#include <iomanip>
 #include "util.hpp"
 
 #ifdef GRANULA
@@ -27,7 +28,7 @@ public:
     double sum;
 
     friend ostream& operator<< (ostream &strm, const vertex_property &that) {
-        return strm << that.rank;
+        return strm << scientific << setprecision(15) << that.rank;
     }
     double output_value(void)
     {

@@ -12,6 +12,7 @@
 #include "openG.h"
 #include <limits>
 #include <queue>
+#include <iomanip>
 
 #include "util.hpp"
 
@@ -49,7 +50,7 @@ public:
         if (that.distance == MY_INFINITY) {
             return strm << "infinity";
         } else {
-            return strm << that.distance;
+            return strm << scientific << setprecision(15) << that.distance;
         }
     }
     distance_t output_value(void)
