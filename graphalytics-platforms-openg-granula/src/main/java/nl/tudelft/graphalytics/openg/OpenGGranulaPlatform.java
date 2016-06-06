@@ -15,66 +15,69 @@
  */
 package nl.tudelft.graphalytics.openg;
 
-import it.unimi.dsi.fastutil.longs.Long2LongMap;
-import nl.tudelft.graphalytics.Platform;
-import nl.tudelft.graphalytics.PlatformExecutionException;
-import nl.tudelft.graphalytics.configuration.ConfigurationUtil;
-import nl.tudelft.graphalytics.configuration.InvalidConfigurationException;
-import nl.tudelft.graphalytics.domain.*;
-import nl.tudelft.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
-import nl.tudelft.graphalytics.domain.algorithms.CommunityDetectionLPParameters;
-import nl.tudelft.graphalytics.domain.algorithms.PageRankParameters;
+import nl.tudelft.graphalytics.domain.Benchmark;
 import nl.tudelft.graphalytics.granula.GranulaAwarePlatform;
-import nl.tudelft.graphalytics.openg.algorithms.bfs.BreadthFirstSearchJob;
-import nl.tudelft.graphalytics.openg.algorithms.cdlp.CommunityDetectionLPJob;
-import nl.tudelft.graphalytics.openg.algorithms.pr.PageRankJob;
-import nl.tudelft.graphalytics.openg.algorithms.wcc.WeaklyConnectedComponentsJob;
-import nl.tudelft.graphalytics.openg.algorithms.lcc.LocalClusteringCoefficientJob;
-import nl.tudelft.graphalytics.openg.config.JobConfiguration;
-import nl.tudelft.graphalytics.openg.config.JobConfigurationParser;
-import nl.tudelft.graphalytics.openg.reporting.logging.OpenGLogger;
-import nl.tudelft.pds.granula.modeller.model.job.JobModel;
-import nl.tudelft.pds.granula.modeller.openg.job.OpenG;
-import org.apache.commons.configuration.Configuration;
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.PropertiesConfiguration;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import nl.tudelft.granula.modeller.platform.OpenG;
+import nl.tudelft.granula.modeller.job.JobModel;
 
 import java.io.File;
-import java.io.IOException;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+
 
 /**
  * OpenG platform integration for the Graphalytics benchmark.
- *
- * @author Yong Guo
- * @author Tim Hegeman
  */
 public final class OpenGGranulaPlatform extends OpenGPlatform implements GranulaAwarePlatform {
+
+
+	private static PrintStream console;
 
 	public OpenGGranulaPlatform() {
 		super();
 		OPENG_BINARY_DIRECTORY = "./bin/granula";
 	}
 
+
 	@Override
-	public void setBenchmarkLogDirectory(Path logDirectory) {
-			OpenGLogger.startPlatformLogging(logDirectory.resolve("OperationLog").resolve("driver.logs"));
+	public void preBenchmark(Benchmark benchmark, Path logDirectory) {
+		startPlatformLogging(logDirectory.resolve("platform").resolve("driver.logs"));
 	}
 
 	@Override
-	public void finalizeBenchmarkLogs(Path logDirectory) {
-//			OpenGLogger.collectYarnLogs(logDirectory);
-			// TODO replace with collecting logs from openg
-//			OpenGLogger.collectUtilLog(null, null, 0, 0, logDirectory);
-			OpenGLogger.stopPlatformLogging();
-
+	public void postBenchmark(Benchmark benchmark, Path logDirectory) {
+		stopPlatformLogging();
 	}
+
 
 	@Override
-	public JobModel getGranulaModel() {
-		return new OpenG();
+	public JobModel getJobModel() {
+		return new JobModel(new OpenG());
 	}
+
+
+	public static void startPlatformLogging(Path fileName) {
+		console = System.out;
+		try {
+			File file = null;
+			file = fileName.toFile();
+			file.getParentFile().mkdirs();
+			file.createNewFile();
+			FileOutputStream fos = new FileOutputStream(file);
+			PrintStream ps = new PrintStream(fos);
+			System.setOut(ps);
+		} catch(Exception e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("cannot redirect to output file");
+		}
+		System.out.println("StartTime: " + System.currentTimeMillis());
+	}
+
+	public static void stopPlatformLogging() {
+		System.setOut(console);
+	}
+
 }
+
+

@@ -2,15 +2,15 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>nl.tudelft.graphalytics</groupId>
-	<artifactId>graphalytics-platforms-openg-root</artifactId>
-	<version>0.1</version>
+	<artifactId>graphalytics-platforms-openg</artifactId>
+	<version>0.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
-	<name>Graphalytics Platform OpenG - Root</name>
+	<name>Graphalytics Platform OpenG</name>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<graphalytics.version>0.3</graphalytics.version>
+		<graphalytics.version>0.3-SNAPSHOT</graphalytics.version>
 	</properties>
 
 
@@ -39,6 +39,7 @@
 
 
 	<modules>
+		<module>graphalytics-platforms-openg-platform</module>
 		<module>graphalytics-platforms-openg-std</module>
 	</modules>
 
@@ -49,7 +50,6 @@
 				<activeByDefault>false</activeByDefault>
 			</activation>
 			<modules>
-				<module>granula-model-openg</module>
 				<module>graphalytics-platforms-openg-granula</module>
 			</modules>
 		</profile>
