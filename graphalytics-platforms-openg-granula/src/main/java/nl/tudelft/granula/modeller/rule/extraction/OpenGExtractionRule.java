@@ -47,9 +47,9 @@ public class OpenGExtractionRule extends ExtractionRule {
 
                 if(line.contains("GRANULA") ) {
 
-                    if(line.contains("OpenG") && line.contains("Job")) {
-                        continue;
-                    }
+//                    if(line.contains("OpenG") && line.contains("Job")) {
+//                        continue;
+//                    }
 
                     Log log = extractRecord(line);
 

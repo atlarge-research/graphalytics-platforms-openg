@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+import nl.tudelft.graphalytics.BenchmarkMetrics;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
@@ -206,8 +207,15 @@ public class OpenGPlatform implements Platform {
 		currentGraphPath = dir.getAbsolutePath();
 	}
 
+	private void setupGraph(Graph graph) {
+		File dir = new File(intermediateDirectory + "/" + graph.getName());
+		currentGraphPath = dir.getAbsolutePath();
+	}
+
 	@Override
 	public PlatformBenchmarkResult executeAlgorithmOnGraph(Benchmark benchmark) throws PlatformExecutionException {
+
+		setupGraph(benchmark.getGraph());
 
 		Algorithm algorithm = benchmark.getAlgorithm();
 		Graph graph = benchmark.getGraph();
@@ -266,6 +274,11 @@ public class OpenGPlatform implements Platform {
 		if (!deleteDirectory(new File(currentGraphPath))) {
 			LOG.warn("Failed to delete intermediate directory: " + currentGraphPath);
 		}
+	}
+
+	@Override
+	public BenchmarkMetrics retrieveMetrics() {
+		return new BenchmarkMetrics();
 	}
 
 	@Override

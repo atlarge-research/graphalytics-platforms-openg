@@ -54,7 +54,6 @@ public abstract class OpenGJob {
 	 *
 	 * @param jobConfiguration the generic OpenG configuration to use for this job
 	 * @param graphInputPath   the path of the input graph
-	 * @param graphOutputPath  the path of the output graph
 	 */
 	public OpenGJob(JobConfiguration jobConfiguration, String binaryPath, String graphInputPath, String jobId) {
 		this.jobConfiguration = jobConfiguration;

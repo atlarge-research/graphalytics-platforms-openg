@@ -15,10 +15,14 @@
  */
 package nl.tudelft.graphalytics.openg;
 
+import nl.tudelft.granula.archiver.PlatformArchive;
+import nl.tudelft.graphalytics.BenchmarkMetrics;
 import nl.tudelft.graphalytics.domain.Benchmark;
+import nl.tudelft.graphalytics.domain.BenchmarkResult;
 import nl.tudelft.graphalytics.granula.GranulaAwarePlatform;
 import nl.tudelft.granula.modeller.platform.OpenG;
 import nl.tudelft.granula.modeller.job.JobModel;
+import org.json.simple.JSONObject;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -76,6 +80,20 @@ public final class OpenGGranulaPlatform extends OpenGPlatform implements Granula
 
 	public static void stopPlatformLogging() {
 		System.setOut(console);
+	}
+
+
+	@Override
+	public void enrichMetrics(BenchmarkResult benchmarkResult, Path arcDirectory) {
+		try {
+			PlatformArchive platformArchive = PlatformArchive.readArchive(arcDirectory);
+			JSONObject processGraph = platformArchive.operation("ProcessGraph");
+			Integer procTime = Integer.parseInt(platformArchive.info(processGraph, "Duration"));
+			BenchmarkMetrics metrics = benchmarkResult.getMetrics();
+			metrics.setProcessingTime(procTime);
+		} catch(Exception e) {
+			LOG.error("Failed to enrich metrics.");
+		}
 	}
 
 }
