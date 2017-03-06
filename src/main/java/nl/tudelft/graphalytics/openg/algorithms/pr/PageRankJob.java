@@ -17,7 +17,7 @@ package nl.tudelft.graphalytics.openg.algorithms.pr;
 
 import org.apache.commons.exec.CommandLine;
 
-import nl.tudelft.graphalytics.openg.OpenGJob;
+import nl.tudelft.graphalytics.openg.OpengJob;
 import nl.tudelft.graphalytics.openg.config.JobConfiguration;
 
 /**
@@ -27,7 +27,7 @@ import nl.tudelft.graphalytics.openg.config.JobConfiguration;
  * @author Yong Guo
  * @author Tim Hegeman
  */
-public final class PageRankJob extends OpenGJob {
+public final class PageRankJob extends OpengJob {
 
 	private final long iteration;
 	private final float dampingFactor;

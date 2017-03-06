@@ -17,7 +17,7 @@ package nl.tudelft.graphalytics.openg.algorithms.wcc;
 
 import org.apache.commons.exec.CommandLine;
 
-import nl.tudelft.graphalytics.openg.OpenGJob;
+import nl.tudelft.graphalytics.openg.OpengJob;
 import nl.tudelft.graphalytics.openg.config.JobConfiguration;
 
 /**
@@ -27,7 +27,7 @@ import nl.tudelft.graphalytics.openg.config.JobConfiguration;
  * @author Yong Guo
  * @author Tim Hegeman
  */
-public final class WeaklyConnectedComponentsJob extends OpenGJob {
+public final class WeaklyConnectedComponentsJob extends OpengJob {
 
 	/**
 	 * Creates a new ConnectedComponentsJob object with all mandatory parameters specified.

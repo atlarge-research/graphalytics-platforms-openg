@@ -5,8 +5,8 @@ import nl.tudelft.granula.archiver.GranulaArchiver;
 import nl.tudelft.granula.modeller.entity.BasicType;
 import nl.tudelft.granula.modeller.job.JobModel;
 import nl.tudelft.granula.modeller.job.Overview;
+import nl.tudelft.granula.modeller.platform.Openg;
 import nl.tudelft.granula.modeller.source.JobDirectorySource;
-import nl.tudelft.granula.modeller.platform.OpenG;
 
 public class ModelTester {
     public static void main(String[] args) {
@@ -25,7 +25,7 @@ public class ModelTester {
         overview.setDescription("A OpenG Job");
 
         GranulaArchiver granulaArchiver = new GranulaArchiver(
-                jobDirSource, new JobModel(new OpenG()), outputPath, BasicType.ArchiveFormat.JS);
+                jobDirSource, new JobModel(new Openg()), outputPath, BasicType.ArchiveFormat.JS);
         granulaArchiver.setOverview(overview);
         granulaArchiver.archive();
 

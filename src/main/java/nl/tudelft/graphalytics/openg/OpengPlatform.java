@@ -16,11 +16,19 @@
 package nl.tudelft.graphalytics.openg;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import nl.tudelft.granula.archiver.PlatformArchive;
+import nl.tudelft.granula.modeller.job.JobModel;
+import nl.tudelft.granula.modeller.platform.Openg;
 import nl.tudelft.graphalytics.BenchmarkMetrics;
+import nl.tudelft.graphalytics.domain.*;
+import nl.tudelft.graphalytics.granula.GranulaAwarePlatform;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
@@ -34,11 +42,6 @@ import nl.tudelft.graphalytics.Platform;
 import nl.tudelft.graphalytics.PlatformExecutionException;
 import nl.tudelft.graphalytics.configuration.ConfigurationUtil;
 import nl.tudelft.graphalytics.configuration.InvalidConfigurationException;
-import nl.tudelft.graphalytics.domain.Algorithm;
-import nl.tudelft.graphalytics.domain.Benchmark;
-import nl.tudelft.graphalytics.domain.Graph;
-import nl.tudelft.graphalytics.domain.NestedConfiguration;
-import nl.tudelft.graphalytics.domain.PlatformBenchmarkResult;
 import nl.tudelft.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
 import nl.tudelft.graphalytics.domain.algorithms.CommunityDetectionLPParameters;
 import nl.tudelft.graphalytics.domain.algorithms.PageRankParameters;
@@ -53,6 +56,7 @@ import nl.tudelft.graphalytics.openg.algorithms.sssp.SingleSourceShortestPathsJo
 import nl.tudelft.graphalytics.openg.algorithms.wcc.WeaklyConnectedComponentsJob;
 import nl.tudelft.graphalytics.openg.config.JobConfiguration;
 import nl.tudelft.graphalytics.openg.config.JobConfigurationParser;
+import org.json.simple.JSONObject;
 
 /**
  * OpenG platform integration for the Graphalytics benchmark.
@@ -60,7 +64,10 @@ import nl.tudelft.graphalytics.openg.config.JobConfigurationParser;
  * @author Yong Guo
  * @author Tim Hegeman
  */
-public class OpenGPlatform implements Platform {
+public class OpengPlatform implements GranulaAwarePlatform {
+
+
+	private static PrintStream console;
 
 	protected static final Logger LOG = LogManager.getLogger();
 
@@ -80,7 +87,7 @@ public class OpenGPlatform implements Platform {
 	protected String currentGraphPath;
 	protected Long2LongMap currentGraphVertexIdTranslation;
 
-	public OpenGPlatform() {
+	public OpengPlatform() {
 		try {
 			loadConfiguration();
 		} catch (InvalidConfigurationException e) {
@@ -88,6 +95,7 @@ public class OpenGPlatform implements Platform {
 			LOG.fatal(e);
 			System.exit(-1);
 		}
+		OPENG_BINARY_DIRECTORY = "./bin/granula";
 	}
 
 	protected void loadConfiguration() throws InvalidConfigurationException {
@@ -221,7 +229,7 @@ public class OpenGPlatform implements Platform {
 		Graph graph = benchmark.getGraph();
 		Object parameters = benchmark.getAlgorithmParameters();
 
-		OpenGJob job;
+		OpengJob job;
 		switch (algorithm) {
 			case BFS:
 				long sourceVertex = ((BreadthFirstSearchParameters)parameters).getSourceVertex();
@@ -289,6 +297,59 @@ public class OpenGPlatform implements Platform {
 	@Override
 	public NestedConfiguration getPlatformConfiguration() {
 		return NestedConfiguration.fromExternalConfiguration(opengConfig, PROPERTIES_FILENAME);
+	}
+
+
+	@Override
+	public void preBenchmark(Benchmark benchmark, Path logDirectory) {
+		startPlatformLogging(logDirectory.resolve("platform").resolve("driver.logs"));
+	}
+
+	@Override
+	public void postBenchmark(Benchmark benchmark, Path logDirectory) {
+		stopPlatformLogging();
+	}
+
+
+	@Override
+	public JobModel getJobModel() {
+		return new JobModel(new Openg());
+	}
+
+
+	public static void startPlatformLogging(Path fileName) {
+		console = System.out;
+		try {
+			File file = null;
+			file = fileName.toFile();
+			file.getParentFile().mkdirs();
+			file.createNewFile();
+			FileOutputStream fos = new FileOutputStream(file);
+			PrintStream ps = new PrintStream(fos);
+			System.setOut(ps);
+		} catch(Exception e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("cannot redirect to output file");
+		}
+		System.out.println("StartTime: " + System.currentTimeMillis());
+	}
+
+	public static void stopPlatformLogging() {
+		System.setOut(console);
+	}
+
+
+	@Override
+	public void enrichMetrics(BenchmarkResult benchmarkResult, Path arcDirectory) {
+		try {
+			PlatformArchive platformArchive = PlatformArchive.readArchive(arcDirectory);
+			JSONObject processGraph = platformArchive.operation("ProcessGraph");
+			Integer procTime = Integer.parseInt(platformArchive.info(processGraph, "Duration"));
+			BenchmarkMetrics metrics = benchmarkResult.getMetrics();
+			metrics.setProcessingTime(procTime);
+		} catch(Exception e) {
+			LOG.error("Failed to enrich metrics.");
+		}
 	}
 
 }

@@ -38,7 +38,7 @@ import nl.tudelft.graphalytics.openg.config.JobConfiguration;
  * @author Yong Guo
  * @author Tim Hegeman
  */
-public abstract class OpenGJob {
+public abstract class OpengJob {
 
 	private static final Logger LOG = LogManager.getLogger();
 	private static final Marker OPENG_OUTPUT_MARKER = MarkerManager.getMarker("OPENG-OUTPUT");
@@ -55,7 +55,7 @@ public abstract class OpenGJob {
 	 * @param jobConfiguration the generic OpenG configuration to use for this job
 	 * @param graphInputPath   the path of the input graph
 	 */
-	public OpenGJob(JobConfiguration jobConfiguration, String binaryPath, String graphInputPath, String jobId) {
+	public OpengJob(JobConfiguration jobConfiguration, String binaryPath, String graphInputPath, String jobId) {
 		this.jobConfiguration = jobConfiguration;
 		this.binaryPath = binaryPath;
 		this.graphInputPath = graphInputPath;

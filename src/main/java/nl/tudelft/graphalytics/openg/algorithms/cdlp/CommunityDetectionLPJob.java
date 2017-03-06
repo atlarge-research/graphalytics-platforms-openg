@@ -17,7 +17,7 @@ package nl.tudelft.graphalytics.openg.algorithms.cdlp;
 
 import org.apache.commons.exec.CommandLine;
 
-import nl.tudelft.graphalytics.openg.OpenGJob;
+import nl.tudelft.graphalytics.openg.OpengJob;
 import nl.tudelft.graphalytics.openg.config.JobConfiguration;
 
 /**
@@ -27,7 +27,7 @@ import nl.tudelft.graphalytics.openg.config.JobConfiguration;
  * @author Yong Guo
  * @author Tim Hegeman
  */
-public final class CommunityDetectionLPJob extends OpenGJob {
+public final class CommunityDetectionLPJob extends OpengJob {
 
 	private final long iteration;
 

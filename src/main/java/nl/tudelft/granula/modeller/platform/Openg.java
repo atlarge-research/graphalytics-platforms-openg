@@ -32,9 +32,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class OpenG extends PlatformModel {
+public class Openg extends PlatformModel {
 
-    public OpenG() {
+    public Openg() {
         super();
         addOperationModel(new TopActorTopMission());
         addOperationModel(new OpenGJob());
