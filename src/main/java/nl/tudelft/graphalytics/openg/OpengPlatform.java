@@ -26,8 +26,12 @@ import java.nio.file.Paths;
 import nl.tudelft.granula.archiver.PlatformArchive;
 import nl.tudelft.granula.modeller.job.JobModel;
 import nl.tudelft.granula.modeller.platform.Openg;
-import nl.tudelft.graphalytics.BenchmarkMetrics;
-import nl.tudelft.graphalytics.domain.*;
+import nl.tudelft.graphalytics.report.result.BenchmarkMetrics;
+import nl.tudelft.graphalytics.domain.algorithms.*;
+import nl.tudelft.graphalytics.report.result.BenchmarkResult;
+import nl.tudelft.graphalytics.domain.benchmark.BenchmarkRun;
+import nl.tudelft.graphalytics.report.result.PlatformBenchmarkResult;
+import nl.tudelft.graphalytics.domain.graph.Graph;
 import nl.tudelft.graphalytics.granula.GranulaAwarePlatform;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
@@ -38,14 +42,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
-import nl.tudelft.graphalytics.Platform;
-import nl.tudelft.graphalytics.PlatformExecutionException;
+import nl.tudelft.graphalytics.execution.PlatformExecutionException;
 import nl.tudelft.graphalytics.configuration.ConfigurationUtil;
 import nl.tudelft.graphalytics.configuration.InvalidConfigurationException;
-import nl.tudelft.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
-import nl.tudelft.graphalytics.domain.algorithms.CommunityDetectionLPParameters;
-import nl.tudelft.graphalytics.domain.algorithms.PageRankParameters;
-import nl.tudelft.graphalytics.domain.algorithms.SingleSourceShortestPathsParameters;
 import nl.tudelft.graphalytics.domain.graph.PropertyList;
 import nl.tudelft.graphalytics.domain.graph.PropertyType;
 import nl.tudelft.graphalytics.openg.algorithms.bfs.BreadthFirstSearchJob;
@@ -221,38 +220,38 @@ public class OpengPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public PlatformBenchmarkResult executeAlgorithmOnGraph(Benchmark benchmark) throws PlatformExecutionException {
+	public PlatformBenchmarkResult execute(BenchmarkRun benchmarkRun) throws PlatformExecutionException {
 
-		setupGraph(benchmark.getGraph());
+		setupGraph(benchmarkRun.getGraph());
 
-		Algorithm algorithm = benchmark.getAlgorithm();
-		Graph graph = benchmark.getGraph();
-		Object parameters = benchmark.getAlgorithmParameters();
+		Algorithm algorithm = benchmarkRun.getAlgorithm();
+		Graph graph = benchmarkRun.getGraph();
+		Object parameters = benchmarkRun.getAlgorithmParameters();
 
 		OpengJob job;
 		switch (algorithm) {
 			case BFS:
 				long sourceVertex = ((BreadthFirstSearchParameters)parameters).getSourceVertex();
-				job = new BreadthFirstSearchJob(sourceVertex, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, benchmark.getId());
+				job = new BreadthFirstSearchJob(sourceVertex, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, benchmarkRun.getId());
 				break;
 			case CDLP:
 				long maxIteration = ((CommunityDetectionLPParameters)parameters).getMaxIterations();
-				job = new CommunityDetectionLPJob(maxIteration, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, benchmark.getId());
+				job = new CommunityDetectionLPJob(maxIteration, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, benchmarkRun.getId());
 				break;
 			case LCC:
-				job = new LocalClusteringCoefficientJob(jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, benchmark.getId());
+				job = new LocalClusteringCoefficientJob(jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, benchmarkRun.getId());
 				break;
 			case PR:
 				float dampingFactor = ((PageRankParameters)parameters).getDampingFactor();
 				long iteration = ((PageRankParameters)parameters).getNumberOfIterations();
-				job = new PageRankJob(iteration, dampingFactor, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, benchmark.getId());
+				job = new PageRankJob(iteration, dampingFactor, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, benchmarkRun.getId());
 				break;
 			case WCC:
-				job = new WeaklyConnectedComponentsJob(jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, benchmark.getId());
+				job = new WeaklyConnectedComponentsJob(jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, benchmarkRun.getId());
 				break;
 			case SSSP:
 				sourceVertex = ((SingleSourceShortestPathsParameters)parameters).getSourceVertex();
-				job = new SingleSourceShortestPathsJob(sourceVertex, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, benchmark.getId());
+				job = new SingleSourceShortestPathsJob(sourceVertex, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, benchmarkRun.getId());
 				break;
 			default:
 				throw new PlatformExecutionException("Not yet implemented.");
@@ -261,8 +260,9 @@ public class OpengPlatform implements GranulaAwarePlatform {
 		LOG.info("Executing algorithm \"{}\" on graph \"{}\".", algorithm.getName(), graph.getName());
 
 		try {
-			if (benchmark.isOutputRequired()) {
-				job.setOutputPath(benchmark.getOutputPath());
+			if (benchmarkRun.isOutputRequired()) {
+				Path outputFile = benchmarkRun.getOutputDir().resolve(benchmarkRun.getName());
+				job.setOutputPath(outputFile.toAbsolutePath().toString());
 			}
 
 			int exitCode = job.execute();
@@ -274,7 +274,7 @@ public class OpengPlatform implements GranulaAwarePlatform {
 			throw new PlatformExecutionException("Failed to launch OpenG", e);
 		}
 
-		return new PlatformBenchmarkResult(NestedConfiguration.empty());
+		return new PlatformBenchmarkResult();
 	}
 
 	@Override
@@ -285,33 +285,32 @@ public class OpengPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public BenchmarkMetrics retrieveMetrics() {
+	public BenchmarkMetrics extractMetrics() {
 		return new BenchmarkMetrics();
 	}
 
 	@Override
-	public String getName() {
+	public String getPlatformName() {
 		return PLATFORM_NAME;
 	}
 
 	@Override
-	public NestedConfiguration getPlatformConfiguration() {
-		return NestedConfiguration.fromExternalConfiguration(opengConfig, PROPERTIES_FILENAME);
-	}
-
-
-	@Override
-	public void preBenchmark(Benchmark benchmark, Path logDirectory) {
-		startPlatformLogging(logDirectory.resolve("platform").resolve("driver.logs"));
-	}
-
-	@Override
-	public void cleanup(Benchmark benchmark) {
+	public void prepare(BenchmarkRun benchmarkRun) {
 
 	}
 
 	@Override
-	public void postBenchmark(Benchmark benchmark, Path logDirectory) {
+	public void preprocess(BenchmarkRun benchmarkRun) {
+		startPlatformLogging(benchmarkRun.getLogDir().resolve("platform").resolve("driver.logs"));
+	}
+
+	@Override
+	public void cleanup(BenchmarkRun benchmarkRun) {
+
+	}
+
+	@Override
+	public void postprocess(BenchmarkRun benchmarkRun) {
 		stopPlatformLogging();
 	}
 
