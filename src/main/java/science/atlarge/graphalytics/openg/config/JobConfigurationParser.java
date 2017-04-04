@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.tudelft.graphalytics.openg.config;
+package science.atlarge.graphalytics.openg.config;
 
-import nl.tudelft.graphalytics.configuration.ConfigurationUtil;
-import nl.tudelft.graphalytics.configuration.InvalidConfigurationException;
+import science.atlarge.graphalytics.configuration.ConfigurationUtil;
+import science.atlarge.graphalytics.configuration.InvalidConfigurationException;
 import org.apache.commons.configuration.Configuration;
 
 import java.nio.file.Paths;

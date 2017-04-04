@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.tudelft.graphalytics.openg;
+package science.atlarge.graphalytics.openg;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -29,7 +29,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.Marker;
 import org.apache.logging.log4j.MarkerManager;
 
-import nl.tudelft.graphalytics.openg.config.JobConfiguration;
+import science.atlarge.graphalytics.openg.config.JobConfiguration;
 
 /**
  * Base class for all jobs in the OpenG benchmark suite. Configures and executes a OpenG job using the parameters

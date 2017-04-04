@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.tudelft.graphalytics.openg.algorithms.sssp;
+package science.atlarge.graphalytics.openg.algorithms.pr;
 
 import org.apache.commons.exec.CommandLine;
 
-import nl.tudelft.graphalytics.openg.OpengJob;
-import nl.tudelft.graphalytics.openg.config.JobConfiguration;
+import science.atlarge.graphalytics.openg.OpengJob;
+import science.atlarge.graphalytics.openg.config.JobConfiguration;
 
 /**
  * Breadth-first search job implementation for OpenG. This class is responsible for formatting BFS-specific
@@ -27,31 +27,37 @@ import nl.tudelft.graphalytics.openg.config.JobConfiguration;
  * @author Yong Guo
  * @author Tim Hegeman
  */
-public final class SingleSourceShortestPathsJob extends OpengJob {
+public final class PageRankJob extends OpengJob {
 
-	private final long sourceVertex;
+	private final long iteration;
+	private final float dampingFactor;
 
 	/**
 	 * Creates a new BreadthFirstSearchJob object with all mandatory parameters specified.
 	 *
-	 * @param sourceVertex     the ID of the source vertex
+	 * @param iteration     the ID of the source vertex
 	 * @param jobConfiguration the generic OpenG configuration to use for this job
 	 * @param graphInputPath   the path to the input graph
 	 */
-	public SingleSourceShortestPathsJob(long sourceVertex, JobConfiguration jobConfiguration, String binaryPath,
-			String graphInputPath, String jobId) {
+	public PageRankJob(long iteration, float dampingFactor, JobConfiguration jobConfiguration, String binaryPath,
+                       String graphInputPath, String jobId) {
 		super(jobConfiguration, binaryPath, graphInputPath, jobId);
-		this.sourceVertex = sourceVertex;
+		this.iteration = iteration;
+		this.dampingFactor = dampingFactor;
 	}
 
 	@Override
 	protected void appendAlgorithmParameters(CommandLine commandLine) {
-		commandLine.addArgument("--root", false);
-		commandLine.addArgument(String.valueOf(sourceVertex), false);
+		commandLine.addArgument("--dampingfactor", false);
+		commandLine.addArgument(String.valueOf(dampingFactor), false);
+
+		commandLine.addArgument("--iteration", false);
+		commandLine.addArgument(String.valueOf(iteration), false);
+
 	}
 
 	@Override
 	protected String getExecutableName() {
-		return "sssp";
+		return "pr";
 	}
 }

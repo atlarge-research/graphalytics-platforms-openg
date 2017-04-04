@@ -13,44 +13,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.tudelft.graphalytics.openg.algorithms.cdlp;
+package science.atlarge.graphalytics.openg.algorithms.lcc;
 
 import org.apache.commons.exec.CommandLine;
 
-import nl.tudelft.graphalytics.openg.OpengJob;
-import nl.tudelft.graphalytics.openg.config.JobConfiguration;
+import science.atlarge.graphalytics.openg.OpengJob;
+import science.atlarge.graphalytics.openg.config.JobConfiguration;
 
 /**
- * Breadth-first search job implementation for OpenG. This class is responsible for formatting BFS-specific
+ * Connected components job implementation for OpenG. This class is responsible for formatting CC-specific
  * arguments to be passed to the OpenG executable, and does not include the implementation of the algorithm.
  *
  * @author Yong Guo
  * @author Tim Hegeman
  */
-public final class CommunityDetectionLPJob extends OpengJob {
-
-	private final long iteration;
+public final class LocalClusteringCoefficientJob extends OpengJob {
 
 	/**
-	 * Creates a new BreadthFirstSearchJob object with all mandatory parameters specified.
+	 * Creates a new ConnectedComponentsJob object with all mandatory parameters specified.
 	 *
 	 * @param jobConfiguration the generic OpenG configuration to use for this job
-	 * @param graphInputPath   the path to the input graph
+	 * @param graphInputPath   the path of the input graph
 	 */
-	public CommunityDetectionLPJob(long iteration, JobConfiguration jobConfiguration, String binaryPath,
-								   String graphInputPath, String jobId) {
+	public LocalClusteringCoefficientJob(JobConfiguration jobConfiguration, String binaryPath, String graphInputPath, String jobId) {
 		super(jobConfiguration, binaryPath, graphInputPath, jobId);
-		this.iteration = iteration;
 	}
 
 	@Override
 	protected void appendAlgorithmParameters(CommandLine commandLine) {
-		commandLine.addArgument("--iteration", false);
-		commandLine.addArgument(String.valueOf(iteration), false);
 	}
 
 	@Override
 	protected String getExecutableName() {
-		return "cdlp";
+		return "lcc";
 	}
 }

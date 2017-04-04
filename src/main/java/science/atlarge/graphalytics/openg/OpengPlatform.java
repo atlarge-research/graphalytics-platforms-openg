@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.tudelft.graphalytics.openg;
+package science.atlarge.graphalytics.openg;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -26,13 +26,12 @@ import java.nio.file.Paths;
 import nl.tudelft.granula.archiver.PlatformArchive;
 import nl.tudelft.granula.modeller.job.JobModel;
 import nl.tudelft.granula.modeller.platform.Openg;
-import nl.tudelft.graphalytics.report.result.BenchmarkMetrics;
-import nl.tudelft.graphalytics.domain.algorithms.*;
-import nl.tudelft.graphalytics.report.result.BenchmarkResult;
-import nl.tudelft.graphalytics.domain.benchmark.BenchmarkRun;
-import nl.tudelft.graphalytics.report.result.PlatformBenchmarkResult;
-import nl.tudelft.graphalytics.domain.graph.Graph;
-import nl.tudelft.graphalytics.granula.GranulaAwarePlatform;
+import science.atlarge.graphalytics.report.result.BenchmarkMetrics;
+import science.atlarge.graphalytics.report.result.BenchmarkResult;
+import science.atlarge.graphalytics.domain.benchmark.BenchmarkRun;
+import science.atlarge.graphalytics.report.result.PlatformBenchmarkResult;
+import science.atlarge.graphalytics.domain.graph.Graph;
+import science.atlarge.graphalytics.granula.GranulaAwarePlatform;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
@@ -42,20 +41,21 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
-import nl.tudelft.graphalytics.execution.PlatformExecutionException;
-import nl.tudelft.graphalytics.configuration.ConfigurationUtil;
-import nl.tudelft.graphalytics.configuration.InvalidConfigurationException;
-import nl.tudelft.graphalytics.domain.graph.PropertyList;
-import nl.tudelft.graphalytics.domain.graph.PropertyType;
-import nl.tudelft.graphalytics.openg.algorithms.bfs.BreadthFirstSearchJob;
-import nl.tudelft.graphalytics.openg.algorithms.cdlp.CommunityDetectionLPJob;
-import nl.tudelft.graphalytics.openg.algorithms.lcc.LocalClusteringCoefficientJob;
-import nl.tudelft.graphalytics.openg.algorithms.pr.PageRankJob;
-import nl.tudelft.graphalytics.openg.algorithms.sssp.SingleSourceShortestPathsJob;
-import nl.tudelft.graphalytics.openg.algorithms.wcc.WeaklyConnectedComponentsJob;
-import nl.tudelft.graphalytics.openg.config.JobConfiguration;
-import nl.tudelft.graphalytics.openg.config.JobConfigurationParser;
+import science.atlarge.graphalytics.execution.PlatformExecutionException;
+import science.atlarge.graphalytics.configuration.ConfigurationUtil;
+import science.atlarge.graphalytics.configuration.InvalidConfigurationException;
+import science.atlarge.graphalytics.domain.graph.PropertyList;
+import science.atlarge.graphalytics.domain.graph.PropertyType;
+import science.atlarge.graphalytics.openg.algorithms.bfs.BreadthFirstSearchJob;
+import science.atlarge.graphalytics.openg.algorithms.cdlp.CommunityDetectionLPJob;
+import science.atlarge.graphalytics.openg.algorithms.lcc.LocalClusteringCoefficientJob;
+import science.atlarge.graphalytics.openg.algorithms.pr.PageRankJob;
+import science.atlarge.graphalytics.openg.algorithms.sssp.SingleSourceShortestPathsJob;
+import science.atlarge.graphalytics.openg.algorithms.wcc.WeaklyConnectedComponentsJob;
+import science.atlarge.graphalytics.openg.config.JobConfiguration;
+import science.atlarge.graphalytics.openg.config.JobConfigurationParser;
 import org.json.simple.JSONObject;
+import science.atlarge.graphalytics.domain.algorithms.*;
 
 /**
  * OpenG platform integration for the Graphalytics benchmark.

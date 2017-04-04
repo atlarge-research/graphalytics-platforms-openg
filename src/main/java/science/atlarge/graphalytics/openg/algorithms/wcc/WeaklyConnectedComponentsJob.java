@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.tudelft.graphalytics.openg.algorithms.wcc;
+package science.atlarge.graphalytics.openg.algorithms.wcc;
 
 import org.apache.commons.exec.CommandLine;
 
-import nl.tudelft.graphalytics.openg.OpengJob;
-import nl.tudelft.graphalytics.openg.config.JobConfiguration;
+import science.atlarge.graphalytics.openg.OpengJob;
+import science.atlarge.graphalytics.openg.config.JobConfiguration;
 
 /**
  * Connected components job implementation for OpenG. This class is responsible for formatting CC-specific

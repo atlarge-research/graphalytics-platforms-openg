@@ -13,38 +13,46 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.tudelft.graphalytics.openg.algorithms.lcc;
+package science.atlarge.graphalytics.openg.algorithms.bfs;
 
 import org.apache.commons.exec.CommandLine;
 
-import nl.tudelft.graphalytics.openg.OpengJob;
-import nl.tudelft.graphalytics.openg.config.JobConfiguration;
+import science.atlarge.graphalytics.openg.OpengJob;
+import science.atlarge.graphalytics.openg.config.JobConfiguration;
 
 /**
- * Connected components job implementation for OpenG. This class is responsible for formatting CC-specific
+ * Breadth-first search job implementation for OpenG. This class is responsible for formatting BFS-specific
  * arguments to be passed to the OpenG executable, and does not include the implementation of the algorithm.
  *
  * @author Yong Guo
  * @author Tim Hegeman
  */
-public final class LocalClusteringCoefficientJob extends OpengJob {
+public final class BreadthFirstSearchJob extends OpengJob {
+
+	private final long sourceVertex;
 
 	/**
-	 * Creates a new ConnectedComponentsJob object with all mandatory parameters specified.
+	 * Creates a new BreadthFirstSearchJob object with all mandatory parameters specified.
 	 *
+	 * @param sourceVertex     the ID of the source vertex
 	 * @param jobConfiguration the generic OpenG configuration to use for this job
-	 * @param graphInputPath   the path of the input graph
+	 * @param graphInputPath   the path to the input graph
+	 * @param graphOutputPath  the path to the output graph
 	 */
-	public LocalClusteringCoefficientJob(JobConfiguration jobConfiguration, String binaryPath, String graphInputPath, String jobId) {
+	public BreadthFirstSearchJob(long sourceVertex, JobConfiguration jobConfiguration, String binaryPath,
+                                 String graphInputPath, String jobId) {
 		super(jobConfiguration, binaryPath, graphInputPath, jobId);
+		this.sourceVertex = sourceVertex;
 	}
 
 	@Override
 	protected void appendAlgorithmParameters(CommandLine commandLine) {
+		commandLine.addArgument("--root", false);
+		commandLine.addArgument(String.valueOf(sourceVertex), false);
 	}
 
 	@Override
 	protected String getExecutableName() {
-		return "lcc";
+		return "bfs";
 	}
 }
