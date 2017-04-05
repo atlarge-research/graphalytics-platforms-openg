@@ -26,11 +26,11 @@ import java.nio.file.Paths;
 import nl.tudelft.granula.archiver.PlatformArchive;
 import nl.tudelft.granula.modeller.job.JobModel;
 import nl.tudelft.granula.modeller.platform.Openg;
+import science.atlarge.graphalytics.domain.graph.FormattedGraph;
 import science.atlarge.graphalytics.report.result.BenchmarkMetrics;
 import science.atlarge.graphalytics.report.result.BenchmarkResult;
 import science.atlarge.graphalytics.domain.benchmark.BenchmarkRun;
 import science.atlarge.graphalytics.report.result.PlatformBenchmarkResult;
-import science.atlarge.graphalytics.domain.graph.Graph;
 import science.atlarge.graphalytics.granula.GranulaAwarePlatform;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
@@ -152,15 +152,15 @@ public class OpengPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public void uploadGraph(Graph graph) throws Exception {
-		LOG.info("Preprocessing graph \"{}\".", graph.getName());
+	public void uploadGraph(FormattedGraph formattedGraph) throws Exception {
+		LOG.info("Preprocessing graph \"{}\".", formattedGraph.getName());
 
-		if (graph.hasVertexProperties()) {
+		if (formattedGraph.hasVertexProperties()) {
 			throw new IllegalArgumentException("OpenG does not support vertices with properties");
 		}
 
-		if (graph.hasEdgeProperties()) {
-			PropertyList list = graph.getEdgeProperties();
+		if (formattedGraph.hasEdgeProperties()) {
+			PropertyList list = formattedGraph.getEdgeProperties();
 
 			if (list.size() > 1) {
 				throw new IllegalArgumentException("OpenG does not support more than one edge property");
@@ -174,7 +174,7 @@ public class OpengPlatform implements GranulaAwarePlatform {
 			}
 		}
 
-		File dir = new File(intermediateDirectory + "/" + graph.getName());
+		File dir = new File(intermediateDirectory + "/" + formattedGraph.getName());
 
 		if (dir.exists() && dir.isDirectory()) {
 			if (!deleteDirectory(dir)) {
@@ -188,12 +188,12 @@ public class OpengPlatform implements GranulaAwarePlatform {
 		}
 
 		String vertexPath = dir + "/vertex.csv";
-		LOG.info("Creating symbolic link: " + graph.getVertexFilePath() + " -> " + vertexPath);
-		Files.createSymbolicLink(Paths.get(vertexPath), Paths.get(graph.getVertexFilePath()));
+		LOG.info("Creating symbolic link: " + formattedGraph.getVertexFilePath() + " -> " + vertexPath);
+		Files.createSymbolicLink(Paths.get(vertexPath), Paths.get(formattedGraph.getVertexFilePath()));
 
 		String edgePath = dir + "/edge.csv";
-		LOG.info("Creating symbolic link: " + graph.getEdgeFilePath() + " -> " + edgePath);
-		Files.createSymbolicLink(Paths.get(edgePath), Paths.get(graph.getEdgeFilePath()));
+		LOG.info("Creating symbolic link: " + formattedGraph.getEdgeFilePath() + " -> " + edgePath);
+		Files.createSymbolicLink(Paths.get(edgePath), Paths.get(formattedGraph.getEdgeFilePath()));
 
 		CommandLine cmd = new CommandLine(OPENG_BINARY_DIRECTORY + "/genCSR");
 		cmd.addArgument("--dataset");
@@ -201,9 +201,9 @@ public class OpengPlatform implements GranulaAwarePlatform {
 		cmd.addArgument("--outpath");
 		cmd.addArgument(dir.getAbsolutePath());
 		cmd.addArgument("--undirected");
-		cmd.addArgument(graph.isDirected() ? "0" : "1");
+		cmd.addArgument(formattedGraph.isDirected() ? "0" : "1");
 		cmd.addArgument("--weight");
-		cmd.addArgument(graph.hasEdgeProperties() ? "1" : "0");
+		cmd.addArgument(formattedGraph.hasEdgeProperties() ? "1" : "0");
 
 		DefaultExecutor executor = new DefaultExecutor();
 		executor.setExitValue(0);
@@ -214,18 +214,18 @@ public class OpengPlatform implements GranulaAwarePlatform {
 		currentGraphPath = dir.getAbsolutePath();
 	}
 
-	private void setupGraph(Graph graph) {
-		File dir = new File(intermediateDirectory + "/" + graph.getName());
+	private void setupGraph(FormattedGraph formattedGraph) {
+		File dir = new File(intermediateDirectory + "/" + formattedGraph.getName());
 		currentGraphPath = dir.getAbsolutePath();
 	}
 
 	@Override
-	public PlatformBenchmarkResult execute(BenchmarkRun benchmarkRun) throws PlatformExecutionException {
+	public boolean execute(BenchmarkRun benchmarkRun) throws PlatformExecutionException {
 
-		setupGraph(benchmarkRun.getGraph());
+		setupGraph(benchmarkRun.getFormattedGraph());
 
 		Algorithm algorithm = benchmarkRun.getAlgorithm();
-		Graph graph = benchmarkRun.getGraph();
+		FormattedGraph formattedGraph = benchmarkRun.getFormattedGraph();
 		Object parameters = benchmarkRun.getAlgorithmParameters();
 
 		OpengJob job;
@@ -257,7 +257,7 @@ public class OpengPlatform implements GranulaAwarePlatform {
 				throw new PlatformExecutionException("Not yet implemented.");
 		}
 
-		LOG.info("Executing algorithm \"{}\" on graph \"{}\".", algorithm.getName(), graph.getName());
+		LOG.info("Executing algorithm \"{}\" on graph \"{}\".", algorithm.getName(), formattedGraph.getName());
 
 		try {
 			if (benchmarkRun.isOutputRequired()) {
@@ -274,20 +274,16 @@ public class OpengPlatform implements GranulaAwarePlatform {
 			throw new PlatformExecutionException("Failed to launch OpenG", e);
 		}
 
-		return new PlatformBenchmarkResult();
+		return true;
 	}
 
 	@Override
-	public void deleteGraph(String graphName) {
+	public void deleteGraph(FormattedGraph formattedGraph) {
 		if (!deleteDirectory(new File(currentGraphPath))) {
 			LOG.warn("Failed to delete intermediate directory: " + currentGraphPath);
 		}
 	}
 
-	@Override
-	public BenchmarkMetrics extractMetrics() {
-		return new BenchmarkMetrics();
-	}
 
 	@Override
 	public String getPlatformName() {
