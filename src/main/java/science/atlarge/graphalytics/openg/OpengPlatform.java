@@ -306,8 +306,9 @@ public class OpengPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public void postprocess(BenchmarkRun benchmarkRun) {
+	public BenchmarkMetrics postprocess(BenchmarkRun benchmarkRun) {
 		stopPlatformLogging();
+		return new BenchmarkMetrics();
 	}
 
 
