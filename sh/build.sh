@@ -7,7 +7,7 @@ module load openmpi/gcc/64/1.10.1
 module list
 
 
-OPENG_HOME=/var/scratch/wlngai/graphalytics-runner/debug/app/openg/src/
+OPENG_HOME=/var/scratch/wlngai/graphalytics/runner/app/openg/src/
 
 mkdir -p bin/standard
 (cd bin/standard && cmake -DCMAKE_BUILD_TYPE=Release ../../src/main/c -DOPENG_HOME=$OPENG_HOME && make all VERBOSE=1)
