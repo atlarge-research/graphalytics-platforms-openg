@@ -109,10 +109,10 @@ public class OpengPlatform implements GranulaAwarePlatform {
 
 		// Load OpenG-specific configuration
 		try {
-			platformConfig = new PropertiesConfiguration(PLATFORM_PROPERTIES_FILE);
-			benchmarkConfig = new PropertiesConfiguration(BENCHMARK_PROPERTIES_FILE);
-			granulaConfig = new PropertiesConfiguration(GRANULA_PROPERTIES_FILE);
-		} catch (ConfigurationException e) {
+			platformConfig = ConfigurationUtil.loadConfiguration(PLATFORM_PROPERTIES_FILE);
+			benchmarkConfig = ConfigurationUtil.loadConfiguration(BENCHMARK_PROPERTIES_FILE);
+			granulaConfig = ConfigurationUtil.loadConfiguration(GRANULA_PROPERTIES_FILE);
+		} catch (InvalidConfigurationException e) {
 			// Fall-back to an empty properties file
 			LOG.warn("Could not find or load \"{}\"", PLATFORM_PROPERTIES_FILE);
 			LOG.warn("Could not find or load \"{}\"", BENCHMARK_PROPERTIES_FILE);
