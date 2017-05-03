@@ -29,11 +29,10 @@ import nl.tudelft.granula.modeller.platform.Openg;
 import org.apache.commons.io.output.TeeOutputStream;
 import science.atlarge.graphalytics.domain.graph.FormattedGraph;
 import science.atlarge.graphalytics.report.result.BenchmarkMetrics;
-import science.atlarge.graphalytics.report.result.BenchmarkResult;
+import science.atlarge.graphalytics.report.result.BenchmarkRunResult;
 import science.atlarge.graphalytics.domain.benchmark.BenchmarkRun;
 import science.atlarge.graphalytics.granula.GranulaAwarePlatform;
 import org.apache.commons.configuration.Configuration;
-import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
@@ -361,12 +360,12 @@ public class OpengPlatform implements GranulaAwarePlatform {
 
 
 	@Override
-	public void enrichMetrics(BenchmarkResult benchmarkResult, Path arcDirectory) {
+	public void enrichMetrics(BenchmarkRunResult benchmarkRunResult, Path arcDirectory) {
 		try {
 			PlatformArchive platformArchive = PlatformArchive.readArchive(arcDirectory);
 			JSONObject processGraph = platformArchive.operation("ProcessGraph");
 			Integer procTime = Integer.parseInt(platformArchive.info(processGraph, "Duration"));
-			BenchmarkMetrics metrics = benchmarkResult.getMetrics();
+			BenchmarkMetrics metrics = benchmarkRunResult.getMetrics();
 			metrics.setProcessingTime(procTime);
 		} catch(Exception e) {
 			LOG.error("Failed to enrich metrics.");
