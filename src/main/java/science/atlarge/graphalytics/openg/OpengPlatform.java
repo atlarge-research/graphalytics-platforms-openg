@@ -71,12 +71,11 @@ public class OpengPlatform implements GranulaAwarePlatform {
 	protected static final Logger LOG = LogManager.getLogger();
 
 	public static final String PLATFORM_NAME = "openg";
-	public static final String PLATFORM_PROPERTIES_FILE = PLATFORM_NAME + ".properties";
 	private static final String BENCHMARK_PROPERTIES_FILE = "benchmark.properties";
 	private static final String GRANULA_PROPERTIES_FILE = "granula.properties";
 
 	public static final String GRANULA_ENABLE_KEY = "benchmark.run.granula.enabled";
-	public static final String OPENG_INTERMEDIATE_DIR_KEY = "openg.intermediate-dir";
+	public static final String OPENG_INTERMEDIATE_DIR_KEY = "platform.openg.intermediate-dir";
 
 	public static String OPENG_BINARY_DIRECTORY = "./bin/standard";
 
@@ -103,28 +102,24 @@ public class OpengPlatform implements GranulaAwarePlatform {
 		LOG.info("Parsing OpenG configuration file.");
 
 		Configuration benchmarkConfig;
-		Configuration platformConfig;
 		Configuration granulaConfig;
 
 		// Load OpenG-specific configuration
 		try {
-			platformConfig = ConfigurationUtil.loadConfiguration(PLATFORM_PROPERTIES_FILE);
 			benchmarkConfig = ConfigurationUtil.loadConfiguration(BENCHMARK_PROPERTIES_FILE);
 			granulaConfig = ConfigurationUtil.loadConfiguration(GRANULA_PROPERTIES_FILE);
 		} catch (InvalidConfigurationException e) {
 			// Fall-back to an empty properties file
-			LOG.warn("Could not find or load \"{}\"", PLATFORM_PROPERTIES_FILE);
 			LOG.warn("Could not find or load \"{}\"", BENCHMARK_PROPERTIES_FILE);
 			LOG.warn("Could not find or load \"{}\"", GRANULA_PROPERTIES_FILE);
-			platformConfig = new PropertiesConfiguration();
 			benchmarkConfig = new PropertiesConfiguration();
 			granulaConfig = new PropertiesConfiguration();
 		}
 
 		// Parse generic job configuration from the OpenG properties file
-		jobConfiguration = JobConfigurationParser.parseOpenGPropertiesFile(platformConfig);
+		jobConfiguration = JobConfigurationParser.parseOpenGPropertiesFile(benchmarkConfig);
 
-		intermediateDirectory = ConfigurationUtil.getString(platformConfig, OPENG_INTERMEDIATE_DIR_KEY);
+		intermediateDirectory = ConfigurationUtil.getString(benchmarkConfig, OPENG_INTERMEDIATE_DIR_KEY);
 		ensureDirectoryExists(intermediateDirectory, OPENG_INTERMEDIATE_DIR_KEY);
 
 		boolean granulaEnabled = granulaConfig.getBoolean(GRANULA_ENABLE_KEY, false);
