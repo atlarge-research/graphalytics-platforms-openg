@@ -26,14 +26,13 @@ import java.nio.file.Paths;
 import nl.tudelft.granula.archiver.PlatformArchive;
 import nl.tudelft.granula.modeller.job.JobModel;
 import nl.tudelft.granula.modeller.platform.Openg;
+import org.apache.commons.io.output.TeeOutputStream;
 import science.atlarge.graphalytics.domain.graph.FormattedGraph;
 import science.atlarge.graphalytics.report.result.BenchmarkMetrics;
-import science.atlarge.graphalytics.report.result.BenchmarkResult;
+import science.atlarge.graphalytics.report.result.BenchmarkRunResult;
 import science.atlarge.graphalytics.domain.benchmark.BenchmarkRun;
-import science.atlarge.graphalytics.report.result.PlatformBenchmarkResult;
 import science.atlarge.graphalytics.granula.GranulaAwarePlatform;
 import org.apache.commons.configuration.Configuration;
-import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
@@ -66,18 +65,20 @@ import science.atlarge.graphalytics.domain.algorithms.*;
 public class OpengPlatform implements GranulaAwarePlatform {
 
 
-	private static PrintStream console;
+	private static PrintStream sysOut;
+	private static PrintStream sysErr;
 
 	protected static final Logger LOG = LogManager.getLogger();
 
 	public static final String PLATFORM_NAME = "openg";
-	public static final String PROPERTIES_FILENAME = PLATFORM_NAME + ".properties";
+	private static final String BENCHMARK_PROPERTIES_FILE = "benchmark.properties";
+	private static final String GRANULA_PROPERTIES_FILE = "granula.properties";
 
-	public static final String OPENG_INTERMEDIATE_DIR_KEY = "openg.intermediate-dir";
+	public static final String GRANULA_ENABLE_KEY = "benchmark.run.granula.enabled";
+	public static final String OPENG_INTERMEDIATE_DIR_KEY = "platform.openg.intermediate-dir";
 
 	public static String OPENG_BINARY_DIRECTORY = "./bin/standard";
 
-	protected Configuration opengConfig;
 	protected JobConfiguration jobConfiguration;
 	protected String intermediateDirectory;
 	protected String graphOutputDirectory;
@@ -94,26 +95,35 @@ public class OpengPlatform implements GranulaAwarePlatform {
 			LOG.fatal(e);
 			System.exit(-1);
 		}
-		OPENG_BINARY_DIRECTORY = "./bin/granula";
+
 	}
 
 	protected void loadConfiguration() throws InvalidConfigurationException {
 		LOG.info("Parsing OpenG configuration file.");
 
+		Configuration benchmarkConfig;
+		Configuration granulaConfig;
+
 		// Load OpenG-specific configuration
 		try {
-			opengConfig = new PropertiesConfiguration(PROPERTIES_FILENAME);
-		} catch (ConfigurationException e) {
+			benchmarkConfig = ConfigurationUtil.loadConfiguration(BENCHMARK_PROPERTIES_FILE);
+			granulaConfig = ConfigurationUtil.loadConfiguration(GRANULA_PROPERTIES_FILE);
+		} catch (InvalidConfigurationException e) {
 			// Fall-back to an empty properties file
-			LOG.warn("Could not find or load \"{}\"", PROPERTIES_FILENAME);
-			opengConfig = new PropertiesConfiguration();
+			LOG.warn("Could not find or load \"{}\"", BENCHMARK_PROPERTIES_FILE);
+			LOG.warn("Could not find or load \"{}\"", GRANULA_PROPERTIES_FILE);
+			benchmarkConfig = new PropertiesConfiguration();
+			granulaConfig = new PropertiesConfiguration();
 		}
 
 		// Parse generic job configuration from the OpenG properties file
-		jobConfiguration = JobConfigurationParser.parseOpenGPropertiesFile(opengConfig);
+		jobConfiguration = JobConfigurationParser.parseOpenGPropertiesFile(benchmarkConfig);
 
-		intermediateDirectory = ConfigurationUtil.getString(opengConfig, OPENG_INTERMEDIATE_DIR_KEY);
+		intermediateDirectory = ConfigurationUtil.getString(benchmarkConfig, OPENG_INTERMEDIATE_DIR_KEY);
 		ensureDirectoryExists(intermediateDirectory, OPENG_INTERMEDIATE_DIR_KEY);
+
+		boolean granulaEnabled = granulaConfig.getBoolean(GRANULA_ENABLE_KEY, false);
+		OPENG_BINARY_DIRECTORY = granulaEnabled ? "./bin/granula": OPENG_BINARY_DIRECTORY;
 	}
 
 	protected static void ensureDirectoryExists(String directory, String property) throws InvalidConfigurationException {
@@ -134,21 +144,21 @@ public class OpengPlatform implements GranulaAwarePlatform {
 	}
 
 	private static boolean deleteDirectory(File dir) {
-	    if(! dir.exists() || !dir.isDirectory())    {
-	        return false;
-	    }
+		if(! dir.exists() || !dir.isDirectory())    {
+			return false;
+		}
 
-	    String[] files = dir.list();
-	    for(int i = 0, len = files.length; i < len; i++)    {
-	        File f = new File(dir, files[i]);
-	        if(f.isDirectory()) {
-	            deleteDirectory(f);
-	        } else {
-	            f.delete();
-	        }
-	    }
+		String[] files = dir.list();
+		for(int i = 0, len = files.length; i < len; i++)    {
+			File f = new File(dir, files[i]);
+			if(f.isDirectory()) {
+				deleteDirectory(f);
+			} else {
+				f.delete();
+			}
+		}
 
-	    return dir.delete();
+		return dir.delete();
 	}
 
 	@Override
@@ -166,7 +176,7 @@ public class OpengPlatform implements GranulaAwarePlatform {
 				throw new IllegalArgumentException("OpenG does not support more than one edge property");
 			}
 
-            PropertyType type = list.get(0).getType();
+			PropertyType type = list.get(0).getType();
 
 			if (!type.equals(PropertyType.REAL)) {
 				throw new IllegalArgumentException("OpenG does not support edge properties of type: "
@@ -306,8 +316,9 @@ public class OpengPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public void postprocess(BenchmarkRun benchmarkRun) {
+	public BenchmarkMetrics postprocess(BenchmarkRun benchmarkRun) {
 		stopPlatformLogging();
+		return new BenchmarkMetrics();
 	}
 
 
@@ -318,15 +329,18 @@ public class OpengPlatform implements GranulaAwarePlatform {
 
 
 	public static void startPlatformLogging(Path fileName) {
-		console = System.out;
+		sysOut = System.out;
+		sysErr = System.err;
 		try {
 			File file = null;
 			file = fileName.toFile();
 			file.getParentFile().mkdirs();
 			file.createNewFile();
 			FileOutputStream fos = new FileOutputStream(file);
-			PrintStream ps = new PrintStream(fos);
+			TeeOutputStream bothStream =new TeeOutputStream(System.out, fos);
+			PrintStream ps = new PrintStream(bothStream);
 			System.setOut(ps);
+			System.setErr(ps);
 		} catch(Exception e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException("cannot redirect to output file");
@@ -335,17 +349,18 @@ public class OpengPlatform implements GranulaAwarePlatform {
 	}
 
 	public static void stopPlatformLogging() {
-		System.setOut(console);
+		System.setOut(sysOut);
+		System.setErr(sysErr);
 	}
 
 
 	@Override
-	public void enrichMetrics(BenchmarkResult benchmarkResult, Path arcDirectory) {
+	public void enrichMetrics(BenchmarkRunResult benchmarkRunResult, Path arcDirectory) {
 		try {
 			PlatformArchive platformArchive = PlatformArchive.readArchive(arcDirectory);
 			JSONObject processGraph = platformArchive.operation("ProcessGraph");
 			Integer procTime = Integer.parseInt(platformArchive.info(processGraph, "Duration"));
-			BenchmarkMetrics metrics = benchmarkResult.getMetrics();
+			BenchmarkMetrics metrics = benchmarkRunResult.getMetrics();
 			metrics.setProcessingTime(procTime);
 		} catch(Exception e) {
 			LOG.error("Failed to enrich metrics.");

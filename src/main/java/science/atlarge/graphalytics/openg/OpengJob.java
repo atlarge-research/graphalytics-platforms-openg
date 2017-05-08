@@ -85,7 +85,7 @@ public abstract class OpengJob {
 		appendOutputPathParameters(commandLine);
 		appendJobIdParameters(commandLine);
 
-		LOG.debug("Starting job with command line: {}", commandLine.toString());
+		LOG.info("Starting job with command line: {}", commandLine.toString());
 
 		Executor executor = createCommandExecutor();
 		executor.setStreamHandler(new PumpStreamHandler(System.out));

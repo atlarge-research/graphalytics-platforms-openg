@@ -30,8 +30,8 @@ import java.nio.file.Paths;
  */
 public final class JobConfigurationParser {
 
-	public static final String OPENG_HOME_KEY = "openg.home";
-	public static final String OPENG_NUM_WORKER_THREADS_KEY = "openg.num-worker-threads";
+	public static final String OPENG_HOME_KEY = "platform.openg.home";
+	public static final String OPENG_NUM_WORKER_THREADS_KEY = "platform.openg.num-worker-threads";
 
 	private final Configuration opengConfig;
 

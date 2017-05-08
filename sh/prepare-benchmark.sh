@@ -17,16 +17,16 @@
 
 
 # Ensure the configuration file exists
-if [ ! -f "$config/openg.properties" ]; then
-	echo "Missing mandatory configuration file: $config/openg.properties" >&2
+if [ ! -f "$config/platform.properties" ]; then
+	echo "Missing mandatory configuration file: $config/platform.properties" >&2
 	exit 1
 fi
 
-# Get the first specification of openg.home
-OPENG_HOME=$(grep -E "^openg.home[	 ]*[:=]" $config/openg.properties | sed 's/openg.home[\t ]*[:=][\t ]*\([^\t ]*\).*/\1/g' | head -n 1)
+# Get the first specification of platform.openg.home
+OPENG_HOME=$(grep -E "^platform.openg.home[	 ]*[:=]" $config/platform.properties | sed 's/platform.openg.home[\t ]*[:=][\t ]*\([^\t ]*\).*/\1/g' | head -n 1)
 if [ -z $OPENG_HOME ]; then
     echo "Error: home directory for OpenG not specified."
-    echo "Define the environment variable \$OPENG_HOME or modify openg.home in $config/openg.properties"
+    echo "Define the environment variable \$OPENG_HOME or modify platform.openg.home in $config/platform.properties"
     exit 1
 fi
 
@@ -34,7 +34,7 @@ fi
 export platform="openg"
 
 # Set Library jar
-export LIBRARY_JAR=`ls lib/graphalytics-*std*.jar`
+export LIBRARY_JAR=`ls lib/graphalytics-*default*.jar`
 GRANULA_ENABLED=$(grep -E "^benchmark.run.granula.enabled[	 ]*[:=]" $config/granula.properties | sed 's/benchmark.run.granula.enabled[\t ]*[:=][\t ]*\([^\t ]*\).*/\1/g' | head -n 1)
 if [ "$GRANULA_ENABLED" = "true" ] ; then
  if ! find lib -name "graphalytics-*granula*.jar" | grep -q '.'; then
