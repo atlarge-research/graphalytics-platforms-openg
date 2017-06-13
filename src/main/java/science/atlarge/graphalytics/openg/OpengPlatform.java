@@ -162,7 +162,12 @@ public class OpengPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public void uploadGraph(FormattedGraph formattedGraph) throws Exception {
+	public void verifySetup() {
+
+	}
+
+	@Override
+	public void loadGraph(FormattedGraph formattedGraph) throws Exception {
 		LOG.info("Preprocessing graph \"{}\".", formattedGraph.getName());
 
 		if (formattedGraph.hasVertexProperties()) {
@@ -230,7 +235,7 @@ public class OpengPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public boolean execute(BenchmarkRun benchmarkRun) throws PlatformExecutionException {
+	public boolean run(BenchmarkRun benchmarkRun) throws PlatformExecutionException {
 
 		setupGraph(benchmarkRun.getFormattedGraph());
 
@@ -306,17 +311,17 @@ public class OpengPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public void preprocess(BenchmarkRun benchmarkRun) {
+	public void startup(BenchmarkRun benchmarkRun) {
 		startPlatformLogging(benchmarkRun.getLogDir().resolve("platform").resolve("driver.logs"));
 	}
 
 	@Override
-	public void cleanup(BenchmarkRun benchmarkRun) {
+	public void terminate(BenchmarkRun benchmarkRun) {
 
 	}
 
 	@Override
-	public BenchmarkMetrics postprocess(BenchmarkRun benchmarkRun) {
+	public BenchmarkMetrics finalize(BenchmarkRun benchmarkRun) {
 		stopPlatformLogging();
 		return new BenchmarkMetrics();
 	}
