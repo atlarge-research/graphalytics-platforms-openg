@@ -66,11 +66,10 @@ import science.atlarge.graphalytics.domain.algorithms.*;
  */
 public class OpengPlatform implements GranulaAwarePlatform {
 
-
+	protected static final Logger LOG = LogManager.getLogger();
 	private static PrintStream sysOut;
 	private static PrintStream sysErr;
 
-	protected static final Logger LOG = LogManager.getLogger();
 
 	public static final String PLATFORM_NAME = "openg";
 	private static final String BENCHMARK_PROPERTIES_FILE = "benchmark.properties";
@@ -83,11 +82,7 @@ public class OpengPlatform implements GranulaAwarePlatform {
 
 	protected JobConfiguration jobConfiguration;
 	protected String intermediateDirectory;
-	protected String graphOutputDirectory;
-
-	protected String intermediatePath;
 	protected String currentGraphPath;
-	protected Long2LongMap currentGraphVertexIdTranslation;
 
 	public OpengPlatform() {
 		try {
@@ -98,69 +93,6 @@ public class OpengPlatform implements GranulaAwarePlatform {
 			System.exit(-1);
 		}
 
-	}
-
-	protected void loadConfiguration() throws InvalidConfigurationException {
-		LOG.info("Parsing OpenG configuration file.");
-
-		Configuration benchmarkConfig;
-		Configuration granulaConfig;
-
-		// Load OpenG-specific configuration
-		try {
-			benchmarkConfig = ConfigurationUtil.loadConfiguration(BENCHMARK_PROPERTIES_FILE);
-			granulaConfig = ConfigurationUtil.loadConfiguration(GRANULA_PROPERTIES_FILE);
-		} catch (InvalidConfigurationException e) {
-			// Fall-back to an empty properties file
-			LOG.warn("Could not find or load \"{}\"", BENCHMARK_PROPERTIES_FILE);
-			LOG.warn("Could not find or load \"{}\"", GRANULA_PROPERTIES_FILE);
-			benchmarkConfig = new PropertiesConfiguration();
-			granulaConfig = new PropertiesConfiguration();
-		}
-
-		// Parse generic job configuration from the OpenG properties file
-		jobConfiguration = JobConfigurationParser.parseOpenGPropertiesFile(benchmarkConfig);
-
-		intermediateDirectory = ConfigurationUtil.getString(benchmarkConfig, OPENG_INTERMEDIATE_DIR_KEY);
-		ensureDirectoryExists(intermediateDirectory, OPENG_INTERMEDIATE_DIR_KEY);
-
-		boolean granulaEnabled = granulaConfig.getBoolean(GRANULA_ENABLE_KEY, false);
-		OPENG_BINARY_DIRECTORY = granulaEnabled ? "./bin/granula": OPENG_BINARY_DIRECTORY;
-	}
-
-	protected static void ensureDirectoryExists(String directory, String property) throws InvalidConfigurationException {
-		File directoryFile = new File(directory);
-		if (directoryFile.exists()) {
-			if (!directoryFile.isDirectory()) {
-				throw new InvalidConfigurationException("Path \"" + directory + "\" set as property \"" + property +
-						"\" already exists, but is not a directory");
-			}
-			return;
-		}
-
-		if (!directoryFile.mkdirs()) {
-			throw new InvalidConfigurationException("Unable to create directory \"" + directory +
-					"\" set as property \"" + property + "\"");
-		}
-		LOG.info("Created directory \"{}\" and any missing parent directories", directory);
-	}
-
-	private static boolean deleteDirectory(File dir) {
-		if(! dir.exists() || !dir.isDirectory())    {
-			return false;
-		}
-
-		String[] files = dir.list();
-		for(int i = 0, len = files.length; i < len; i++)    {
-			File f = new File(dir, files[i]);
-			if(f.isDirectory()) {
-				deleteDirectory(f);
-			} else {
-				f.delete();
-			}
-		}
-
-		return dir.delete();
 	}
 
 	@Override
@@ -231,9 +163,26 @@ public class OpengPlatform implements GranulaAwarePlatform {
 		currentGraphPath = dir.getAbsolutePath();
 	}
 
+	@Override
+	public void deleteGraph(FormattedGraph formattedGraph) {
+		if (!deleteDirectory(new File(currentGraphPath))) {
+			LOG.warn("Failed to delete intermediate directory: " + currentGraphPath);
+		}
+	}
+
 	private void setupGraph(FormattedGraph formattedGraph) {
 		File dir = new File(intermediateDirectory + "/" + formattedGraph.getName());
 		currentGraphPath = dir.getAbsolutePath();
+	}
+
+	@Override
+	public void prepare(BenchmarkRun benchmarkRun) {
+
+	}
+
+	@Override
+	public void startup(BenchmarkRun benchmarkRun) {
+		startPlatformLogging(benchmarkRun.getLogDir().resolve("platform").resolve("driver.logs"));
 	}
 
 	@Override
@@ -295,45 +244,31 @@ public class OpengPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public void deleteGraph(FormattedGraph formattedGraph) {
-		if (!deleteDirectory(new File(currentGraphPath))) {
-			LOG.warn("Failed to delete intermediate directory: " + currentGraphPath);
+	public BenchmarkMetrics finalize(BenchmarkRun benchmarkRun) {
+		stopPlatformLogging();
+		return new BenchmarkMetrics();
+	}
+
+	@Override
+	public void enrichMetrics(BenchmarkRunResult benchmarkRunResult, Path arcDirectory) {
+		try {
+			PlatformArchive platformArchive = PlatformArchive.readArchive(arcDirectory);
+			JSONObject processGraph = platformArchive.operation("ProcessGraph");
+			BenchmarkMetrics metrics = benchmarkRunResult.getMetrics();
+
+			Integer procTimeMS = Integer.parseInt(platformArchive.info(processGraph, "Duration"));
+			BigDecimal procTimeS = (new BigDecimal(procTimeMS)).divide(new BigDecimal(1000), 3, BigDecimal.ROUND_CEILING);
+			metrics.setProcessingTime(new BenchmarkMetric(procTimeS, "s"));
+
+		} catch(Exception e) {
+			LOG.error("Failed to enrich metrics.");
 		}
-	}
-
-
-	@Override
-	public String getPlatformName() {
-		return PLATFORM_NAME;
-	}
-
-	@Override
-	public void prepare(BenchmarkRun benchmarkRun) {
-
-	}
-
-	@Override
-	public void startup(BenchmarkRun benchmarkRun) {
-		startPlatformLogging(benchmarkRun.getLogDir().resolve("platform").resolve("driver.logs"));
 	}
 
 	@Override
 	public void terminate(BenchmarkRun benchmarkRun) {
 
 	}
-
-	@Override
-	public BenchmarkMetrics finalize(BenchmarkRun benchmarkRun) {
-		stopPlatformLogging();
-		return new BenchmarkMetrics();
-	}
-
-
-	@Override
-	public JobModel getJobModel() {
-		return new JobModel(new Openg());
-	}
-
 
 	public static void startPlatformLogging(Path fileName) {
 		sysOut = System.out;
@@ -361,20 +296,77 @@ public class OpengPlatform implements GranulaAwarePlatform {
 	}
 
 
-	@Override
-	public void enrichMetrics(BenchmarkRunResult benchmarkRunResult, Path arcDirectory) {
+	protected void loadConfiguration() throws InvalidConfigurationException {
+		LOG.info("Parsing OpenG configuration file.");
+
+		Configuration benchmarkConfig;
+		Configuration granulaConfig;
+
+		// Load OpenG-specific configuration
 		try {
-			PlatformArchive platformArchive = PlatformArchive.readArchive(arcDirectory);
-			JSONObject processGraph = platformArchive.operation("ProcessGraph");
-			BenchmarkMetrics metrics = benchmarkRunResult.getMetrics();
-
-			Integer procTimeMS = Integer.parseInt(platformArchive.info(processGraph, "Duration"));
-			BigDecimal procTimeS = (new BigDecimal(procTimeMS)).divide(new BigDecimal(1000), 3, BigDecimal.ROUND_CEILING);
-			metrics.setProcessingTime(new BenchmarkMetric(procTimeS, "s"));
-
-		} catch(Exception e) {
-			LOG.error("Failed to enrich metrics.");
+			benchmarkConfig = ConfigurationUtil.loadConfiguration(BENCHMARK_PROPERTIES_FILE);
+			granulaConfig = ConfigurationUtil.loadConfiguration(GRANULA_PROPERTIES_FILE);
+		} catch (InvalidConfigurationException e) {
+			// Fall-back to an empty properties file
+			LOG.warn("Could not find or load \"{}\"", BENCHMARK_PROPERTIES_FILE);
+			LOG.warn("Could not find or load \"{}\"", GRANULA_PROPERTIES_FILE);
+			benchmarkConfig = new PropertiesConfiguration();
+			granulaConfig = new PropertiesConfiguration();
 		}
+
+		// Parse generic job configuration from the OpenG properties file
+		jobConfiguration = JobConfigurationParser.parseOpenGPropertiesFile(benchmarkConfig);
+
+		intermediateDirectory = ConfigurationUtil.getString(benchmarkConfig, OPENG_INTERMEDIATE_DIR_KEY);
+		ensureDirectoryExists(intermediateDirectory, OPENG_INTERMEDIATE_DIR_KEY);
+
+		boolean granulaEnabled = granulaConfig.getBoolean(GRANULA_ENABLE_KEY, false);
+		OPENG_BINARY_DIRECTORY = granulaEnabled ? "./bin/granula": OPENG_BINARY_DIRECTORY;
+	}
+
+	protected static void ensureDirectoryExists(String directory, String property) throws InvalidConfigurationException {
+		File directoryFile = new File(directory);
+		if (directoryFile.exists()) {
+			if (!directoryFile.isDirectory()) {
+				throw new InvalidConfigurationException("Path \"" + directory + "\" set as property \"" + property +
+						"\" already exists, but is not a directory");
+			}
+			return;
+		}
+
+		if (!directoryFile.mkdirs()) {
+			throw new InvalidConfigurationException("Unable to create directory \"" + directory +
+					"\" set as property \"" + property + "\"");
+		}
+		LOG.info("Created directory \"{}\" and any missing parent directories", directory);
+	}
+
+	private static boolean deleteDirectory(File dir) {
+		if(! dir.exists() || !dir.isDirectory())    {
+			return false;
+		}
+
+		String[] files = dir.list();
+		for(int i = 0, len = files.length; i < len; i++)    {
+			File f = new File(dir, files[i]);
+			if(f.isDirectory()) {
+				deleteDirectory(f);
+			} else {
+				f.delete();
+			}
+		}
+
+		return dir.delete();
+	}
+
+	@Override
+	public JobModel getJobModel() {
+		return new JobModel(new Openg());
+	}
+
+	@Override
+	public String getPlatformName() {
+		return PLATFORM_NAME;
 	}
 
 }
