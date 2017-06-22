@@ -27,6 +27,7 @@ import java.nio.file.Paths;
 import nl.tudelft.granula.archiver.PlatformArchive;
 import nl.tudelft.granula.modeller.job.JobModel;
 import nl.tudelft.granula.modeller.platform.Openg;
+import nl.tudelft.granula.util.FileUtil;
 import org.apache.commons.io.output.TeeOutputStream;
 import science.atlarge.graphalytics.domain.graph.FormattedGraph;
 import science.atlarge.graphalytics.report.result.BenchmarkMetric;
@@ -246,7 +247,44 @@ public class OpengPlatform implements GranulaAwarePlatform {
 	@Override
 	public BenchmarkMetrics finalize(BenchmarkRun benchmarkRun) {
 		stopPlatformLogging();
-		return new BenchmarkMetrics();
+
+
+		String logs = FileUtil.readFile(benchmarkRun.getLogDir().resolve("platform").resolve("driver.logs"));
+
+		Long startTime = null;
+		Long endTime = null;
+
+		for (String line : logs.split("\n")) {
+			try {
+				if (line.contains("Processing starts at: ")) {
+					String[] lineParts = line.split("\\s+");
+					startTime = Long.parseLong(lineParts[lineParts.length - 1]);
+				}
+
+				if (line.contains("Processing ends at: ")) {
+					String[] lineParts = line.split("\\s+");
+					endTime = Long.parseLong(lineParts[lineParts.length - 1]);
+				}
+			} catch (Exception e) {
+				LOG.error(String.format("Cannot parse line: %s", line));
+				e.printStackTrace();
+			}
+
+		}
+
+		if(startTime != null && endTime != null) {
+
+			BenchmarkMetrics metrics = new BenchmarkMetrics();
+
+			Long procTimeMS =  new Long(endTime - startTime);
+			BigDecimal procTimeS = (new BigDecimal(procTimeMS)).divide(new BigDecimal(1000), 3, BigDecimal.ROUND_CEILING);
+			metrics.setProcessingTime(new BenchmarkMetric(procTimeS, "s"));
+
+			return metrics;
+		} else {
+
+			return new BenchmarkMetrics();
+		}
 	}
 
 	@Override

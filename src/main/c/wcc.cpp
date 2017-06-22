@@ -7,7 +7,7 @@
 #include "def.h"
 #include "perf.h"
 #include "util.hpp"
-
+#include <chrono>
 #include "openG.h"
 #include <queue>
 #include "omp.h"
@@ -252,6 +252,11 @@ void output(graph_t& g)
     }
 }
 
+string getEpoch() {
+    return to_string(chrono::duration_cast<chrono::milliseconds>
+        (chrono::system_clock::now().time_since_epoch()).count());
+}
+
 void reset_graph(graph_t & g)
 {
     vertex_iterator vit;
@@ -339,6 +344,8 @@ int main(int argc, char * argv[])
     cout<<processGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
 #endif
 
+    cout<< "Processing starts at: " + getEpoch() + "\n" <<endl;
+
     for (unsigned i=0;i<run_num;i++)
     {
         vector<vector<uint64_t> > global_input_tasks(threadnum);
@@ -351,6 +358,8 @@ int main(int argc, char * argv[])
         if ((i+1)<run_num) reset_graph(graph);
     }
     cout<<"WCC finish: \n";
+
+    cout<< "Processing ends at: " + getEpoch() + "\n" <<endl;
 
 #ifdef GRANULA
     cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
