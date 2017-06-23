@@ -187,7 +187,7 @@ public class OpengPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public boolean run(BenchmarkRun benchmarkRun) throws PlatformExecutionException {
+	public void run(BenchmarkRun benchmarkRun) throws PlatformExecutionException {
 
 		setupGraph(benchmarkRun.getFormattedGraph());
 
@@ -241,7 +241,6 @@ public class OpengPlatform implements GranulaAwarePlatform {
 			throw new PlatformExecutionException("Failed to launch OpenG", e);
 		}
 
-		return true;
 	}
 
 	@Override
