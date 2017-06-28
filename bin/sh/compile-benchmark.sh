@@ -15,36 +15,33 @@
 # limitations under the License.
 #
 
+set -e
 
 # Ensure the configuration file exists
+rootdir=$(dirname $(readlink -f ${BASH_SOURCE[0]}))/../../
+config="${rootdir}/config/"
 if [ ! -f "$config/platform.properties" ]; then
 	echo "Missing mandatory configuration file: $config/platform.properties" >&2
 	exit 1
 fi
 
-# Get the first specification of platform.openg.home
+# Construct the classpath
 OPENG_HOME=$(grep -E "^platform.openg.home[	 ]*[:=]" $config/platform.properties | sed 's/platform.openg.home[\t ]*[:=][\t ]*\([^\t ]*\).*/\1/g' | head -n 1)
 if [ -z $OPENG_HOME ]; then
     echo "Error: home directory for OpenG not specified."
     echo "Define the environment variable \$OPENG_HOME or modify platform.openg.home in $config/platform.properties"
     exit 1
 fi
-
-# Set the "platform" variable
-export platform="openg"
-
-# Set Library jar
-export LIBRARY_JAR=`ls lib/graphalytics-*default*.jar`
 GRANULA_ENABLED=$(grep -E "^benchmark.run.granula.enabled[	 ]*[:=]" $config/granula.properties | sed 's/benchmark.run.granula.enabled[\t ]*[:=][\t ]*\([^\t ]*\).*/\1/g' | head -n 1)
-if [ "$GRANULA_ENABLED" = "true" ] ; then
- if ! find lib -name "graphalytics-*granula*.jar" | grep -q '.'; then
-    echo "Granula cannot be enabled due to missing library jar" >&2
- else
-    export LIBRARY_JAR=`ls lib/graphalytics-*granula*.jar`
- fi
-fi
+
 
 # Build binaries
+module unload intel-mpi
+module unload gcc
+module load openmpi
+module load openmpi/gcc
+module list
+
 mkdir -p bin/standard
 (cd bin/standard && cmake -DCMAKE_BUILD_TYPE=Release ../../src/main/c -DOPENG_HOME=$OPENG_HOME && make all VERBOSE=1)
 

@@ -14,26 +14,26 @@
  * limitations under the License.
  */
 
-package nl.tudelft.granula.modeller.platform.operation;
+package science.atlarge.granula.modeller.platform.operation;
 
-import nl.tudelft.granula.modeller.Type;
-import nl.tudelft.granula.modeller.rule.derivation.DerivationRule;
-import nl.tudelft.granula.modeller.rule.derivation.SimpleSummaryDerivation;
-import nl.tudelft.granula.modeller.rule.linking.UniqueParentLinking;
-import nl.tudelft.granula.modeller.rule.visual.TableVisualization;
+import science.atlarge.granula.modeller.Type;
+import science.atlarge.granula.modeller.rule.derivation.SimpleSummaryDerivation;
+import science.atlarge.granula.modeller.rule.visual.TableVisualization;
 
 import java.util.ArrayList;
 
-public class ProcessGraph extends RealtimeOperationModel {
+import science.atlarge.granula.modeller.rule.linking.UniqueParentLinking;
 
-    public ProcessGraph() {
-        super(Type.OpenG, Type.ProcessGraph);
+
+public class OpenGJob extends RealtimeOperationModel {
+
+    public OpenGJob() {
+        super(Type.OpenG, Type.Job);
     }
 
     public void loadRules() {
         super.loadRules();
-
-        addLinkingRule(new UniqueParentLinking(Type.OpenG, Type.Job));
+        addLinkingRule(new UniqueParentLinking(Type.TopActor, Type.TopMission));
 
         String summary = "?.";
         addInfoDerivation(new SimpleSummaryDerivation(11, summary));
@@ -42,7 +42,5 @@ public class ProcessGraph extends RealtimeOperationModel {
                 new ArrayList<String>() {{
                 }}));
     }
-
-
 
 }

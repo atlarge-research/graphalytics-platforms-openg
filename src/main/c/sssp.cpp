@@ -13,7 +13,7 @@
 #include <limits>
 #include <queue>
 #include <iomanip>
-
+#include <chrono>
 #include "util.hpp"
 
 #ifdef HMC
@@ -338,6 +338,11 @@ void output(graph_t& g)
     return;
 }
 
+string getEpoch() {
+    return to_string(chrono::duration_cast<chrono::milliseconds>
+        (chrono::system_clock::now().time_since_epoch()).count());
+}
+
 void reset_graph(graph_t & g)
 {
     vertex_iterator vit;
@@ -454,6 +459,8 @@ int main(int argc, char * argv[])
     cout<<processGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
 #endif
 
+    cout<< "Processing starts at: " + getEpoch() + "\n" <<endl;
+
     for (unsigned i=0;i<run_num;i++)
     {
         t1 = timer::get_usec();
@@ -464,6 +471,8 @@ int main(int argc, char * argv[])
         elapse_time += t2-t1;
         if ((i+1)<run_num) reset_graph(graph);
     }
+
+    cout<< "Processing ends at: " + getEpoch() + "\n" <<endl;
 
 #ifdef GRANULA
     cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
