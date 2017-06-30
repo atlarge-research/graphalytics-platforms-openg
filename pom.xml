@@ -247,10 +247,14 @@
                         <exclude>src/main/resources/**</exclude>
                         <exclude>src/main/assembly/**</exclude>
                         <exclude>config-template/**</exclude>
+                        <exclude>**/*.mk</exclude>
+                        <exclude>**/*.txt</exclude>
                     </excludes>
                     <mapping>
                         <java>SLASHSTAR_STYLE</java>
                         <scala>SLASHSTAR_STYLE</scala>
+                        <cpp>SLASHSTAR_STYLE</cpp>
+                        <hpp>SLASHSTAR_STYLE</hpp>
                     </mapping>
                 </configuration>
                 <executions>
@@ -283,7 +287,7 @@
                         <goals>
                             <goal>create</goal>
                         </goals>
-                        <configuration>
+                            <configuration>
                             <doCheck>true</doCheck>
                         </configuration>
                     </execution>
