@@ -15,21 +15,38 @@
 # limitations under the License.
 #
 
-# Ensure the configuration file exists
-if [ ! -f "$config/platform.properties" ]; then
-	echo "Missing mandatory configuration file: $config/platform.properties" >&2
-	exit 1
-fi
+set -e
 
-# Set library jar
-export LIBRARY_JAR=`ls lib/graphalytics-*default*.jar`
+rootdir=$(dirname $(readlink -f ${BASH_SOURCE[0]}))/../..
+
+# Parse commandline instructions (provided by Graphalytics).
+while [[ $# -gt 1 ]] # Parse two arguments: [--key value] or [-k value]
+  do
+  key="$1"
+  value="$2"
+
+  case $key in
+
+    --job-id)
+      JOB_ID="$value"
+      shift;;
+
+    --log-path)
+      LOG_PATH="$value"
+      shift;;
+
+    *)
+      echo "Error: invalid option: " "$key"
+      exit 1
+      ;;
+  esac
+  shift
+done
+
+# TODO Reconstruct executable commandline instructions (platform-specific).
+COMMAND=kill -9 $LOG_PATH/executable.pid
 
 
-# Construct the classpath
-PLATFORM_HOME=$(grep -E "^platform.openg.home[	 ]*[:=]" $config/platform.properties | sed 's/platform.openg.home[\t ]*[:=][\t ]*\([^\t ]*\).*/\1/g' | head -n 1)
-if [ -z $PLATFORM_HOME ]; then
-    echo "Error: Openg home directory not specified."
-    echo "Define variable platform.openg.home in $config/platform.properties"
-    exit 1
-fi
+echo "Terminating platform job" "$COMMAND"
 
+$COMMAND

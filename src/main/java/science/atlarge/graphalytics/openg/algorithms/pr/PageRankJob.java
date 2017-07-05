@@ -15,17 +15,17 @@
  */
 package science.atlarge.graphalytics.openg.algorithms.pr;
 
-import org.apache.commons.exec.CommandLine;
-
+import science.atlarge.graphalytics.domain.algorithms.AlgorithmParameters;
+import science.atlarge.graphalytics.domain.algorithms.PageRankParameters;
+import science.atlarge.graphalytics.domain.benchmark.BenchmarkRun;
 import science.atlarge.graphalytics.openg.OpengJob;
-import science.atlarge.graphalytics.openg.config.JobConfiguration;
+import science.atlarge.graphalytics.openg.OpengConfiguration;
 
 /**
- * Breadth-first search job implementation for OpenG. This class is responsible for formatting BFS-specific
- * arguments to be passed to the OpenG executable, and does not include the implementation of the algorithm.
+ * Page Rank job implementation for Openg. This class is responsible for formatting PR-specific
+ * arguments to be passed to the platform executable, and does not include the implementation of the algorithm.
  *
- * @author Yong Guo
- * @author Tim Hegeman
+ * @author Wing Lung Ngai
  */
 public final class PageRankJob extends OpengJob {
 
@@ -35,29 +35,29 @@ public final class PageRankJob extends OpengJob {
 	/**
 	 * Creates a new BreadthFirstSearchJob object with all mandatory parameters specified.
 	 *
-	 * @param iteration     the ID of the source vertex
-	 * @param jobConfiguration the generic OpenG configuration to use for this job
-	 * @param graphInputPath   the path to the input graph
+	 * @param platformConfig the platform configuration.
+	 * @param inputPath the path to the loaded graph.
 	 */
-	public PageRankJob(long iteration, float dampingFactor, JobConfiguration jobConfiguration, String binaryPath,
-                       String graphInputPath, String jobId) {
-		super(jobConfiguration, binaryPath, graphInputPath, jobId);
-		this.iteration = iteration;
-		this.dampingFactor = dampingFactor;
+	public PageRankJob(BenchmarkRun benchmarkRun, OpengConfiguration platformConfig,
+					   String inputPath, String outputPath) {
+		super(benchmarkRun, platformConfig, inputPath, outputPath);
+
+		AlgorithmParameters parameters = benchmarkRun.getAlgorithmParameters();
+		this.iteration = ((PageRankParameters)parameters).getNumberOfIterations();
+		this.dampingFactor = ((PageRankParameters)parameters).getDampingFactor();
 	}
 
 	@Override
-	protected void appendAlgorithmParameters(CommandLine commandLine) {
-		commandLine.addArgument("--dampingfactor", false);
+	protected void appendAlgorithmParameters() {
+
+		commandLine.addArgument("--algorithm");
+		commandLine.addArgument("pr");
+
+		commandLine.addArgument("--damping-factor", false);
 		commandLine.addArgument(String.valueOf(dampingFactor), false);
 
-		commandLine.addArgument("--iteration", false);
+		commandLine.addArgument("--max-iteration", false);
 		commandLine.addArgument(String.valueOf(iteration), false);
 
-	}
-
-	@Override
-	protected String getExecutableName() {
-		return "pr";
 	}
 }

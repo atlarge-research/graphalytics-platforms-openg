@@ -15,17 +15,17 @@
  */
 package science.atlarge.graphalytics.openg.algorithms.cdlp;
 
-import org.apache.commons.exec.CommandLine;
-
+import science.atlarge.graphalytics.domain.algorithms.AlgorithmParameters;
+import science.atlarge.graphalytics.domain.algorithms.CommunityDetectionLPParameters;
+import science.atlarge.graphalytics.domain.benchmark.BenchmarkRun;
 import science.atlarge.graphalytics.openg.OpengJob;
-import science.atlarge.graphalytics.openg.config.JobConfiguration;
+import science.atlarge.graphalytics.openg.OpengConfiguration;
 
 /**
- * Breadth-first search job implementation for OpenG. This class is responsible for formatting BFS-specific
- * arguments to be passed to the OpenG executable, and does not include the implementation of the algorithm.
+ * Community Detection job implementation for Openg. This class is responsible for formatting CDLP-specific
+ * arguments to be passed to the platform executable, and does not include the implementation of the algorithm.
  *
- * @author Yong Guo
- * @author Tim Hegeman
+ * @author Wing Lung Ngai
  */
 public final class CommunityDetectionLPJob extends OpengJob {
 
@@ -34,23 +34,25 @@ public final class CommunityDetectionLPJob extends OpengJob {
 	/**
 	 * Creates a new BreadthFirstSearchJob object with all mandatory parameters specified.
 	 *
-	 * @param jobConfiguration the generic OpenG configuration to use for this job
-	 * @param graphInputPath   the path to the input graph
+	 * @param platformConfig the platform configuration.
+	 * @param inputPath the path to the loaded graph.
 	 */
-	public CommunityDetectionLPJob(long iteration, JobConfiguration jobConfiguration, String binaryPath,
-                                   String graphInputPath, String jobId) {
-		super(jobConfiguration, binaryPath, graphInputPath, jobId);
-		this.iteration = iteration;
+	public CommunityDetectionLPJob(BenchmarkRun benchmarkRun, OpengConfiguration platformConfig,
+								   String inputPath, String outputPath) {
+		super(benchmarkRun, platformConfig, inputPath, outputPath);
+
+		AlgorithmParameters parameters = benchmarkRun.getAlgorithmParameters();
+		this.iteration = ((CommunityDetectionLPParameters)parameters).getMaxIterations();
 	}
 
 	@Override
-	protected void appendAlgorithmParameters(CommandLine commandLine) {
-		commandLine.addArgument("--iteration", false);
+	protected void appendAlgorithmParameters() {
+
+		commandLine.addArgument("--algorithm");
+		commandLine.addArgument("cdlp");
+
+		commandLine.addArgument("--max-iteration", false);
 		commandLine.addArgument(String.valueOf(iteration), false);
 	}
 
-	@Override
-	protected String getExecutableName() {
-		return "cdlp";
-	}
 }
