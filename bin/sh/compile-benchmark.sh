@@ -32,10 +32,16 @@ if [ -z $PLATFORM_HOME ]; then
     echo "Define variable platform.openg.home in $config/platform.properties"
     exit 1
 fi
+GRANULA_ENABLED=$(grep -E "^benchmark.run.granula.enabled[	 ]*[:=]" $config/granula.properties | sed 's/benchmark.run.granula.enabled[\t ]*[:=][\t ]*\([^\t ]*\).*/\1/g' | head -n 1)
 
-# TODO Build binaries
+# Build binaries
 mkdir -p $rootdir/bin/exe
 (cd $rootdir/bin/exe && cmake -DCMAKE_BUILD_TYPE=Release ../../src/main/c -DOPENG_HOME=$PLATFORM_HOME && make all VERBOSE=1)
+
+if [ "$GRANULA_ENABLED" = "true" ] ; then
+ mkdir -p $rootdir/bin/granula
+ (cd $rootdir/bin/granula && cmake -DCMAKE_BUILD_TYPE=Release -DGRANULA=1 ../../src/main/c -DOPENG_HOME=$PLATFORM_HOME && make all VERBOSE=1)
+fi
 
 if [ $? -ne 0 ]
 then

@@ -79,11 +79,19 @@ while [[ $# -gt 1 ]] # Parse two arguments: [--key value] or [-k value]
   shift
 done
 
+
 # TODO Reconstruct executable commandline instructions (platform-specific).
+EXE_DIR=$rootdir/bin/exe
+GRANULA_ENABLED=$(grep -E "^benchmark.run.granula.enabled[	 ]*[:=]" $config/granula.properties | sed 's/benchmark.run.granula.enabled[\t ]*[:=][\t ]*\([^\t ]*\).*/\1/g' | head -n 1)
+if [ "$GRANULA_ENABLED" = "true" ] ; then
+  EXE_DIR=$rootdir/bin/granula
+fi
+
+
 case $ALGORITHM in
 
     bfs)
-      COMMAND="$rootdir/bin/exe/$ALGORITHM --jobid $JOB_ID \
+      COMMAND="$EXE_DIR/$ALGORITHM --jobid $JOB_ID \
         --root $SOURCE_VERTEX \
         --dataset $INPUT_PATH --output $OUTPUT_PATH \
         --threadnum $NUM_THREADS"
@@ -91,33 +99,33 @@ case $ALGORITHM in
       ;;
 
     wcc)
-      COMMAND="$rootdir/bin/exe/$ALGORITHM --jobid $JOB_ID \
+      COMMAND="$EXE_DIR/$ALGORITHM --jobid $JOB_ID \
         --dataset $INPUT_PATH --output $OUTPUT_PATH \
         --threadnum $NUM_THREADS"
       ;;
 
     pr)
-      COMMAND="$rootdir/bin/exe/$ALGORITHM --jobid $JOB_ID \
+      COMMAND="$EXE_DIR/$ALGORITHM --jobid $JOB_ID \
         --dampingfactor $DAMPING_FACTOR --iteration $MAX_ITERATION \
         --dataset $INPUT_PATH --output $OUTPUT_PATH \
         --threadnum $NUM_THREADS"
       ;;
 
     cdlp)
-      COMMAND="$rootdir/bin/exe/$ALGORITHM --jobid $JOB_ID \
+      COMMAND="$EXE_DIR/$ALGORITHM --jobid $JOB_ID \
         --iteration $MAX_ITERATION \
         --dataset $INPUT_PATH --output $OUTPUT_PATH \
         --threadnum $NUM_THREADS"
       ;;
 
     lcc)
-      COMMAND="$rootdir/bin/exe/$ALGORITHM --jobid $JOB_ID \
+      COMMAND="$EXE_DIR/$ALGORITHM --jobid $JOB_ID \
         --dataset $INPUT_PATH --output $OUTPUT_PATH \
         --threadnum $NUM_THREADS"
       ;;
 
     sssp)
-      COMMAND="$rootdir/bin/exe/$ALGORITHM --jobid $JOB_ID \
+      COMMAND="$EXE_DIR/$ALGORITHM --jobid $JOB_ID \
         --root $SOURCE_VERTEX \
         --dataset $INPUT_PATH --output $OUTPUT_PATH \
         --threadnum $NUM_THREADS"

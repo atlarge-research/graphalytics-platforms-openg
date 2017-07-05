@@ -17,11 +17,16 @@ package science.atlarge.graphalytics.openg;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.simple.JSONObject;
+import science.atlarge.granula.archiver.PlatformArchive;
+import science.atlarge.granula.modeller.job.JobModel;
+import science.atlarge.granula.modeller.platform.Openg;
 import science.atlarge.graphalytics.domain.algorithms.Algorithm;
 import science.atlarge.graphalytics.domain.benchmark.BenchmarkRun;
 import science.atlarge.graphalytics.domain.graph.FormattedGraph;
 import science.atlarge.graphalytics.execution.Platform;
 import science.atlarge.graphalytics.execution.PlatformExecutionException;
+import science.atlarge.graphalytics.granula.GranulaAwarePlatform;
 import science.atlarge.graphalytics.report.result.BenchmarkMetrics;
 import science.atlarge.graphalytics.report.result.BenchmarkMetric;
 import science.atlarge.graphalytics.openg.OpengLoader;
@@ -34,6 +39,7 @@ import science.atlarge.graphalytics.openg.algorithms.wcc.WeaklyConnectedComponen
 import science.atlarge.graphalytics.openg.OpengConfiguration;
 import science.atlarge.graphalytics.openg.OpengCollector;
 import science.atlarge.graphalytics.openg.OpengCollector;
+import science.atlarge.graphalytics.report.result.BenchmarkRunResult;
 
 import java.nio.file.Paths;
 import java.nio.file.Path;
@@ -50,7 +56,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * @author Wing Lung Ngai
  */
-public class OpengPlatform implements Platform {
+public class OpengPlatform implements GranulaAwarePlatform {
 
 	protected static final Logger LOG = LogManager.getLogger();
 
@@ -181,5 +187,26 @@ public class OpengPlatform implements Platform {
 	@Override
 	public String getPlatformName() {
 		return PLATFORM_NAME;
+	}
+
+	@Override
+	public JobModel getJobModel() {
+		return new JobModel(new Openg());
+	}
+
+	@Override
+	public void enrichMetrics(BenchmarkRunResult benchmarkRunResult, Path arcDirectory) {
+		try {
+			PlatformArchive platformArchive = PlatformArchive.readArchive(arcDirectory);
+			JSONObject processGraph = platformArchive.operation("ProcessGraph");
+			BenchmarkMetrics metrics = benchmarkRunResult.getMetrics();
+
+			Integer procTimeMS = Integer.parseInt(platformArchive.info(processGraph, "Duration"));
+			BigDecimal procTimeS = (new BigDecimal(procTimeMS)).divide(new BigDecimal(1000), 3, BigDecimal.ROUND_CEILING);
+			metrics.setProcessingTime(new BenchmarkMetric(procTimeS, "s"));
+
+		} catch(Exception e) {
+			LOG.error("Failed to enrich metrics.");
+		}
 	}
 }

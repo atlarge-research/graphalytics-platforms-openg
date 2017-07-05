@@ -23,7 +23,15 @@ fi
 
 # Set library jar
 export LIBRARY_JAR=`ls lib/graphalytics-*default*.jar`
-
+GRANULA_ENABLED=$(grep -E "^benchmark.run.granula.enabled[	 ]*[:=]" $config/granula.properties | sed 's/benchmark.run.granula.enabled[\t ]*[:=][\t ]*\([^\t ]*\).*/\1/g' | head -n 1)
+if [ "$GRANULA_ENABLED" = "true" ] ; then
+ if ! find lib -name "graphalytics-platforms-*-granula.jar" | grep -q '.'; then
+    echo "Failed to find the library jar with Granula plugin" >&2
+    exit 1
+ else
+    export LIBRARY_JAR=`ls lib/graphalytics-platforms-*-granula.jar`
+ fi
+fi
 
 # Construct the classpath
 PLATFORM_HOME=$(grep -E "^platform.openg.home[	 ]*[:=]" $config/platform.properties | sed 's/platform.openg.home[\t ]*[:=][\t ]*\([^\t ]*\).*/\1/g' | head -n 1)
