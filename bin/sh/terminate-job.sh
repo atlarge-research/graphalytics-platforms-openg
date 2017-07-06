@@ -44,7 +44,7 @@ while [[ $# -gt 1 ]] # Parse two arguments: [--key value] or [-k value]
 done
 
 # TODO Reconstruct executable commandline instructions (platform-specific).
-COMMAND=kill -9 $LOG_PATH/executable.pid
+COMMAND="kill -9 $LOG_PATH/executable.pid"
 
 
 echo "Terminating platform job" "$COMMAND"

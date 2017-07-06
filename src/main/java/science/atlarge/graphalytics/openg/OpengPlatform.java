@@ -24,6 +24,7 @@ import science.atlarge.granula.modeller.platform.Openg;
 import science.atlarge.graphalytics.domain.algorithms.Algorithm;
 import science.atlarge.graphalytics.domain.benchmark.BenchmarkRun;
 import science.atlarge.graphalytics.domain.graph.FormattedGraph;
+import science.atlarge.graphalytics.execution.BenchmarkRunner;
 import science.atlarge.graphalytics.execution.Platform;
 import science.atlarge.graphalytics.execution.PlatformExecutionException;
 import science.atlarge.graphalytics.granula.GranulaAwarePlatform;
@@ -40,6 +41,7 @@ import science.atlarge.graphalytics.openg.OpengConfiguration;
 import science.atlarge.graphalytics.openg.OpengCollector;
 import science.atlarge.graphalytics.openg.OpengCollector;
 import science.atlarge.graphalytics.report.result.BenchmarkRunResult;
+import science.atlarge.graphalytics.util.ProcessUtil;
 
 import java.nio.file.Paths;
 import java.nio.file.Path;
@@ -181,7 +183,7 @@ public class OpengPlatform implements GranulaAwarePlatform {
 
 	@Override
 	public void terminate(BenchmarkRun benchmarkRun) throws Exception {
-
+		BenchmarkRunner.terminatePlatform(benchmarkRun);
 	}
 
 	@Override
