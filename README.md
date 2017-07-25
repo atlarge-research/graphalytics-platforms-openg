@@ -1,5 +1,6 @@
 # Graphalytics OpenG platform extension
 
+[![Build Status](https://jenkins.tribler.org/buildStatus/icon?job=Graphalytics/Platforms/OpenG_master)](https://jenkins.tribler.org/job/Graphalytics/job/Platforms/job/OpenG_master/)
 
 ## Getting started
 
