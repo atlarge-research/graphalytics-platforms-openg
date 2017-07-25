@@ -15,274 +15,185 @@
  */
 package science.atlarge.graphalytics.openg;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.math.BigDecimal;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.json.simple.JSONObject;
 import science.atlarge.granula.archiver.PlatformArchive;
 import science.atlarge.granula.modeller.job.JobModel;
 import science.atlarge.granula.modeller.platform.Openg;
-import science.atlarge.granula.util.FileUtil;
-import org.apache.commons.io.output.TeeOutputStream;
-import science.atlarge.graphalytics.domain.graph.FormattedGraph;
-import science.atlarge.graphalytics.report.result.BenchmarkMetric;
-import science.atlarge.graphalytics.report.result.BenchmarkMetrics;
-import science.atlarge.graphalytics.report.result.BenchmarkRunResult;
+import science.atlarge.graphalytics.domain.algorithms.Algorithm;
 import science.atlarge.graphalytics.domain.benchmark.BenchmarkRun;
-import science.atlarge.graphalytics.granula.GranulaAwarePlatform;
-import org.apache.commons.configuration.Configuration;
-import org.apache.commons.configuration.PropertiesConfiguration;
-import org.apache.commons.exec.CommandLine;
-import org.apache.commons.exec.DefaultExecutor;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
+import science.atlarge.graphalytics.domain.graph.FormattedGraph;
+import science.atlarge.graphalytics.execution.BenchmarkRunner;
+import science.atlarge.graphalytics.execution.Platform;
 import science.atlarge.graphalytics.execution.PlatformExecutionException;
-import science.atlarge.graphalytics.configuration.ConfigurationUtil;
-import science.atlarge.graphalytics.configuration.InvalidConfigurationException;
-import science.atlarge.graphalytics.domain.graph.PropertyList;
-import science.atlarge.graphalytics.domain.graph.PropertyType;
+import science.atlarge.graphalytics.granula.GranulaAwarePlatform;
+import science.atlarge.graphalytics.report.result.BenchmarkMetrics;
+import science.atlarge.graphalytics.report.result.BenchmarkMetric;
+import science.atlarge.graphalytics.openg.OpengLoader;
 import science.atlarge.graphalytics.openg.algorithms.bfs.BreadthFirstSearchJob;
 import science.atlarge.graphalytics.openg.algorithms.cdlp.CommunityDetectionLPJob;
 import science.atlarge.graphalytics.openg.algorithms.lcc.LocalClusteringCoefficientJob;
 import science.atlarge.graphalytics.openg.algorithms.pr.PageRankJob;
 import science.atlarge.graphalytics.openg.algorithms.sssp.SingleSourceShortestPathsJob;
 import science.atlarge.graphalytics.openg.algorithms.wcc.WeaklyConnectedComponentsJob;
-import science.atlarge.graphalytics.openg.config.JobConfiguration;
-import science.atlarge.graphalytics.openg.config.JobConfigurationParser;
-import org.json.simple.JSONObject;
-import science.atlarge.graphalytics.domain.algorithms.*;
+import science.atlarge.graphalytics.openg.OpengConfiguration;
+import science.atlarge.graphalytics.openg.OpengCollector;
+import science.atlarge.graphalytics.openg.OpengCollector;
+import science.atlarge.graphalytics.report.result.BenchmarkRunResult;
+import science.atlarge.graphalytics.util.ProcessUtil;
+
+import java.nio.file.Paths;
+import java.nio.file.Path;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * OpenG platform integration for the Graphalytics benchmark.
+ * Openg platform driver for the Graphalytics benchmark.
  *
- * @author Yong Guo
- * @author Tim Hegeman
+ * @author Wing Lung Ngai
  */
 public class OpengPlatform implements GranulaAwarePlatform {
 
 	protected static final Logger LOG = LogManager.getLogger();
-	private static PrintStream sysOut;
-	private static PrintStream sysErr;
-
 
 	public static final String PLATFORM_NAME = "openg";
-	private static final String BENCHMARK_PROPERTIES_FILE = "benchmark.properties";
-	private static final String GRANULA_PROPERTIES_FILE = "granula.properties";
-
-	public static final String GRANULA_ENABLE_KEY = "benchmark.run.granula.enabled";
-	public static final String OPENG_INTERMEDIATE_DIR_KEY = "platform.openg.intermediate-dir";
-
-	public static String OPENG_BINARY_DIRECTORY = "./bin/standard";
-
-	protected JobConfiguration jobConfiguration;
-	protected String intermediateDirectory;
-	protected String currentGraphPath;
+	public OpengLoader loader;
 
 	public OpengPlatform() {
-		try {
-			loadConfiguration();
-		} catch (InvalidConfigurationException e) {
-			// TODO: Implement cleaner exit procedure
-			LOG.fatal(e);
-			System.exit(-1);
-		}
 
 	}
 
 	@Override
-	public void verifySetup() {
+	public void verifySetup() throws Exception {
 
 	}
 
 	@Override
 	public void loadGraph(FormattedGraph formattedGraph) throws Exception {
-		LOG.info("Preprocessing graph \"{}\".", formattedGraph.getName());
+		OpengConfiguration platformConfig = OpengConfiguration.parsePropertiesFile();
+		loader = new OpengLoader(formattedGraph, platformConfig);
 
-		if (formattedGraph.hasVertexProperties()) {
-			throw new IllegalArgumentException("OpenG does not support vertices with properties");
-		}
+		LOG.info("Loading graph " + formattedGraph.getName());
+		try {
 
-		if (formattedGraph.hasEdgeProperties()) {
-			PropertyList list = formattedGraph.getEdgeProperties();
-
-			if (list.size() > 1) {
-				throw new IllegalArgumentException("OpenG does not support more than one edge property");
+			int exitCode = loader.load();
+			if (exitCode != 0) {
+				throw new PlatformExecutionException("Openg exited with an error code: " + exitCode);
 			}
-
-			PropertyType type = list.get(0).getType();
-
-			if (!type.equals(PropertyType.REAL)) {
-				throw new IllegalArgumentException("OpenG does not support edge properties of type: "
-						+ type);
-			}
+		} catch (Exception e) {
+			throw new PlatformExecutionException("Failed to load a Openg dataset.", e);
 		}
-
-		File dir = new File(intermediateDirectory + "/" + formattedGraph.getName());
-
-		if (dir.exists() && dir.isDirectory()) {
-			if (!deleteDirectory(dir)) {
-				throw new Exception("Failed to delete existing directory :" + dir);
-			}
-		}
-
-		LOG.info("Creating intermediate directory: " + dir);
-		if (!dir.mkdirs()) {
-			throw new Exception("Failed to create intermediate directory :" + dir);
-		}
-
-		String vertexPath = dir + "/vertex.csv";
-		LOG.info("Creating symbolic link: " + formattedGraph.getVertexFilePath() + " -> " + vertexPath);
-		Files.createSymbolicLink(Paths.get(vertexPath), Paths.get(formattedGraph.getVertexFilePath()));
-
-		String edgePath = dir + "/edge.csv";
-		LOG.info("Creating symbolic link: " + formattedGraph.getEdgeFilePath() + " -> " + edgePath);
-		Files.createSymbolicLink(Paths.get(edgePath), Paths.get(formattedGraph.getEdgeFilePath()));
-
-		CommandLine cmd = new CommandLine(OPENG_BINARY_DIRECTORY + "/genCSR");
-		cmd.addArgument("--dataset");
-		cmd.addArgument(dir.getAbsolutePath());
-		cmd.addArgument("--outpath");
-		cmd.addArgument(dir.getAbsolutePath());
-		cmd.addArgument("--undirected");
-		cmd.addArgument(formattedGraph.isDirected() ? "0" : "1");
-		cmd.addArgument("--weight");
-		cmd.addArgument(formattedGraph.hasEdgeProperties() ? "1" : "0");
-
-		DefaultExecutor executor = new DefaultExecutor();
-		executor.setExitValue(0);
-
-		LOG.info("Executing command: " + cmd.toString());
-		executor.execute(cmd);
-
-		currentGraphPath = dir.getAbsolutePath();
+		LOG.info("Loaded graph " + formattedGraph.getName());
 	}
 
 	@Override
-	public void deleteGraph(FormattedGraph formattedGraph) {
-		if (!deleteDirectory(new File(currentGraphPath))) {
-			LOG.warn("Failed to delete intermediate directory: " + currentGraphPath);
-		}
-	}
+	public void deleteGraph(FormattedGraph formattedGraph) throws Exception {
+		LOG.info("Unloading graph " + formattedGraph.getName());
+		try {
 
-	private void setupGraph(FormattedGraph formattedGraph) {
-		File dir = new File(intermediateDirectory + "/" + formattedGraph.getName());
-		currentGraphPath = dir.getAbsolutePath();
+			int exitCode = loader.unload();
+			if (exitCode != 0) {
+				throw new PlatformExecutionException("Openg exited with an error code: " + exitCode);
+			}
+		} catch (Exception e) {
+			throw new PlatformExecutionException("Failed to unload a Openg dataset.", e);
+		}
+		LOG.info("Unloaded graph " + formattedGraph.getName());
 	}
 
 	@Override
-	public void prepare(BenchmarkRun benchmarkRun) {
+	public void prepare(BenchmarkRun benchmarkRun) throws Exception {
 
 	}
 
 	@Override
-	public void startup(BenchmarkRun benchmarkRun) {
-		startPlatformLogging(benchmarkRun.getLogDir().resolve("platform").resolve("driver.logs"));
+	public void startup(BenchmarkRun benchmarkRun) throws Exception {
+		Path logDir = benchmarkRun.getLogDir().resolve("platform").resolve("runner.logs");
+		OpengCollector.startPlatformLogging(logDir);
 	}
 
 	@Override
 	public void run(BenchmarkRun benchmarkRun) throws PlatformExecutionException {
 
-		setupGraph(benchmarkRun.getFormattedGraph());
-
 		Algorithm algorithm = benchmarkRun.getAlgorithm();
-		FormattedGraph formattedGraph = benchmarkRun.getFormattedGraph();
-		Object parameters = benchmarkRun.getAlgorithmParameters();
+		OpengConfiguration platformConfig = OpengConfiguration.parsePropertiesFile();
+		String inputPath = OpengLoader.getLoadedPath(benchmarkRun.getFormattedGraph());
+		String outputPath = benchmarkRun.getOutputDir().resolve(benchmarkRun.getName()).toAbsolutePath().toString();
 
 		OpengJob job;
 		switch (algorithm) {
 			case BFS:
-				long sourceVertex = ((BreadthFirstSearchParameters)parameters).getSourceVertex();
-				job = new BreadthFirstSearchJob(sourceVertex, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, benchmarkRun.getId());
+				job = new BreadthFirstSearchJob(benchmarkRun, platformConfig, inputPath, outputPath);
 				break;
 			case CDLP:
-				long maxIteration = ((CommunityDetectionLPParameters)parameters).getMaxIterations();
-				job = new CommunityDetectionLPJob(maxIteration, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, benchmarkRun.getId());
+				job = new CommunityDetectionLPJob(benchmarkRun, platformConfig, inputPath, outputPath);
 				break;
 			case LCC:
-				job = new LocalClusteringCoefficientJob(jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, benchmarkRun.getId());
+				job = new LocalClusteringCoefficientJob(benchmarkRun, platformConfig, inputPath, outputPath);
 				break;
 			case PR:
-				float dampingFactor = ((PageRankParameters)parameters).getDampingFactor();
-				long iteration = ((PageRankParameters)parameters).getNumberOfIterations();
-				job = new PageRankJob(iteration, dampingFactor, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, benchmarkRun.getId());
+				job = new PageRankJob(benchmarkRun, platformConfig, inputPath, outputPath);
 				break;
 			case WCC:
-				job = new WeaklyConnectedComponentsJob(jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, benchmarkRun.getId());
+				job = new WeaklyConnectedComponentsJob(benchmarkRun, platformConfig, inputPath, outputPath);
 				break;
 			case SSSP:
-				sourceVertex = ((SingleSourceShortestPathsParameters)parameters).getSourceVertex();
-				job = new SingleSourceShortestPathsJob(sourceVertex, jobConfiguration, OPENG_BINARY_DIRECTORY, currentGraphPath, benchmarkRun.getId());
+				job = new SingleSourceShortestPathsJob(benchmarkRun, platformConfig, inputPath, outputPath);
 				break;
 			default:
-				throw new PlatformExecutionException("Not yet implemented.");
+				throw new PlatformExecutionException("Failed to load algorithm implementation.");
 		}
 
-		LOG.info("Executing algorithm \"{}\" on graph \"{}\".", algorithm.getName(), formattedGraph.getName());
+		LOG.info("Executing benchmark with algorithm \"{}\" on graph \"{}\".",
+				benchmarkRun.getAlgorithm().getName(),
+				benchmarkRun.getFormattedGraph().getName());
 
 		try {
-			if (benchmarkRun.isOutputRequired()) {
-				Path outputFile = benchmarkRun.getOutputDir().resolve(benchmarkRun.getName());
-				job.setOutputPath(outputFile.toAbsolutePath().toString());
-			}
 
 			int exitCode = job.execute();
-
 			if (exitCode != 0) {
-				throw new PlatformExecutionException("OpenG completed with a non-zero exit code: " + exitCode);
+				throw new PlatformExecutionException("Openg exited with an error code: " + exitCode);
 			}
-		} catch(IOException e) {
-			throw new PlatformExecutionException("Failed to launch OpenG", e);
+		} catch (Exception e) {
+			throw new PlatformExecutionException("Failed to execute a Openg job.", e);
 		}
+
+		LOG.info("Executed benchmark with algorithm \"{}\" on graph \"{}\".",
+				benchmarkRun.getAlgorithm().getName(),
+				benchmarkRun.getFormattedGraph().getName());
 
 	}
 
 	@Override
-	public BenchmarkMetrics finalize(BenchmarkRun benchmarkRun) {
-		stopPlatformLogging();
+	public BenchmarkMetrics finalize(BenchmarkRun benchmarkRun) throws Exception {
+		OpengCollector.stopPlatformLogging();
 
+		Path logDir = benchmarkRun.getLogDir().resolve("platform");
 
-		String logs = FileUtil.readFile(benchmarkRun.getLogDir().resolve("platform").resolve("driver.logs"));
+		BenchmarkMetrics metrics = new BenchmarkMetrics();
+		metrics.setProcessingTime(OpengCollector.collectProcessingTime(logDir));
+		return metrics;
+	}
 
-		Long startTime = null;
-		Long endTime = null;
+	@Override
+	public void terminate(BenchmarkRun benchmarkRun) throws Exception {
+		BenchmarkRunner.terminatePlatform(benchmarkRun);
+	}
 
-		for (String line : logs.split("\n")) {
-			try {
-				if (line.contains("Processing starts at: ")) {
-					String[] lineParts = line.split("\\s+");
-					startTime = Long.parseLong(lineParts[lineParts.length - 1]);
-				}
+	@Override
+	public String getPlatformName() {
+		return PLATFORM_NAME;
+	}
 
-				if (line.contains("Processing ends at: ")) {
-					String[] lineParts = line.split("\\s+");
-					endTime = Long.parseLong(lineParts[lineParts.length - 1]);
-				}
-			} catch (Exception e) {
-				LOG.error(String.format("Cannot parse line: %s", line));
-				e.printStackTrace();
-			}
-
-		}
-
-		if(startTime != null && endTime != null) {
-
-			BenchmarkMetrics metrics = new BenchmarkMetrics();
-
-			Long procTimeMS =  new Long(endTime - startTime);
-			BigDecimal procTimeS = (new BigDecimal(procTimeMS)).divide(new BigDecimal(1000), 3, BigDecimal.ROUND_CEILING);
-			metrics.setProcessingTime(new BenchmarkMetric(procTimeS, "s"));
-
-			return metrics;
-		} else {
-
-			return new BenchmarkMetrics();
-		}
+	@Override
+	public JobModel getJobModel() {
+		return new JobModel(new Openg());
 	}
 
 	@Override
@@ -300,109 +211,4 @@ public class OpengPlatform implements GranulaAwarePlatform {
 			LOG.error("Failed to enrich metrics.");
 		}
 	}
-
-	@Override
-	public void terminate(BenchmarkRun benchmarkRun) {
-
-	}
-
-	public static void startPlatformLogging(Path fileName) {
-		sysOut = System.out;
-		sysErr = System.err;
-		try {
-			File file = null;
-			file = fileName.toFile();
-			file.getParentFile().mkdirs();
-			file.createNewFile();
-			FileOutputStream fos = new FileOutputStream(file);
-			TeeOutputStream bothStream =new TeeOutputStream(System.out, fos);
-			PrintStream ps = new PrintStream(bothStream);
-			System.setOut(ps);
-			System.setErr(ps);
-		} catch(Exception e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException("cannot redirect to output file");
-		}
-		System.out.println("StartTime: " + System.currentTimeMillis());
-	}
-
-	public static void stopPlatformLogging() {
-		System.setOut(sysOut);
-		System.setErr(sysErr);
-	}
-
-
-	protected void loadConfiguration() throws InvalidConfigurationException {
-		LOG.info("Parsing OpenG configuration file.");
-
-		Configuration benchmarkConfig;
-		Configuration granulaConfig;
-
-		// Load OpenG-specific configuration
-		try {
-			benchmarkConfig = ConfigurationUtil.loadConfiguration(BENCHMARK_PROPERTIES_FILE);
-			granulaConfig = ConfigurationUtil.loadConfiguration(GRANULA_PROPERTIES_FILE);
-		} catch (InvalidConfigurationException e) {
-			// Fall-back to an empty properties file
-			LOG.warn("Could not find or load \"{}\"", BENCHMARK_PROPERTIES_FILE);
-			LOG.warn("Could not find or load \"{}\"", GRANULA_PROPERTIES_FILE);
-			benchmarkConfig = new PropertiesConfiguration();
-			granulaConfig = new PropertiesConfiguration();
-		}
-
-		// Parse generic job configuration from the OpenG properties file
-		jobConfiguration = JobConfigurationParser.parseOpenGPropertiesFile(benchmarkConfig);
-
-		intermediateDirectory = ConfigurationUtil.getString(benchmarkConfig, OPENG_INTERMEDIATE_DIR_KEY);
-		ensureDirectoryExists(intermediateDirectory, OPENG_INTERMEDIATE_DIR_KEY);
-
-		boolean granulaEnabled = granulaConfig.getBoolean(GRANULA_ENABLE_KEY, false);
-		OPENG_BINARY_DIRECTORY = granulaEnabled ? "./bin/granula": OPENG_BINARY_DIRECTORY;
-	}
-
-	protected static void ensureDirectoryExists(String directory, String property) throws InvalidConfigurationException {
-		File directoryFile = new File(directory);
-		if (directoryFile.exists()) {
-			if (!directoryFile.isDirectory()) {
-				throw new InvalidConfigurationException("Path \"" + directory + "\" set as property \"" + property +
-						"\" already exists, but is not a directory");
-			}
-			return;
-		}
-
-		if (!directoryFile.mkdirs()) {
-			throw new InvalidConfigurationException("Unable to create directory \"" + directory +
-					"\" set as property \"" + property + "\"");
-		}
-		LOG.info("Created directory \"{}\" and any missing parent directories", directory);
-	}
-
-	private static boolean deleteDirectory(File dir) {
-		if(! dir.exists() || !dir.isDirectory())    {
-			return false;
-		}
-
-		String[] files = dir.list();
-		for(int i = 0, len = files.length; i < len; i++)    {
-			File f = new File(dir, files[i]);
-			if(f.isDirectory()) {
-				deleteDirectory(f);
-			} else {
-				f.delete();
-			}
-		}
-
-		return dir.delete();
-	}
-
-	@Override
-	public JobModel getJobModel() {
-		return new JobModel(new Openg());
-	}
-
-	@Override
-	public String getPlatformName() {
-		return PLATFORM_NAME;
-	}
-
 }

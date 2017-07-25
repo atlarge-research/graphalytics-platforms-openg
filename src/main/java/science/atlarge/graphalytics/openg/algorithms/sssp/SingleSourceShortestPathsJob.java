@@ -15,17 +15,17 @@
  */
 package science.atlarge.graphalytics.openg.algorithms.sssp;
 
-import org.apache.commons.exec.CommandLine;
-
+import science.atlarge.graphalytics.domain.algorithms.AlgorithmParameters;
+import science.atlarge.graphalytics.domain.algorithms.SingleSourceShortestPathsParameters;
+import science.atlarge.graphalytics.domain.benchmark.BenchmarkRun;
 import science.atlarge.graphalytics.openg.OpengJob;
-import science.atlarge.graphalytics.openg.config.JobConfiguration;
+import science.atlarge.graphalytics.openg.OpengConfiguration;
 
 /**
- * Breadth-first search job implementation for OpenG. This class is responsible for formatting BFS-specific
- * arguments to be passed to the OpenG executable, and does not include the implementation of the algorithm.
+ * Single Source Shortest Paths job implementation for Openg. This class is responsible for formatting SSSP-specific
+ * arguments to be passed to the platform executable, and does not include the implementation of the algorithm.
  *
- * @author Yong Guo
- * @author Tim Hegeman
+ * @author Wing Lung Ngai
  */
 public final class SingleSourceShortestPathsJob extends OpengJob {
 
@@ -34,24 +34,26 @@ public final class SingleSourceShortestPathsJob extends OpengJob {
 	/**
 	 * Creates a new BreadthFirstSearchJob object with all mandatory parameters specified.
 	 *
-	 * @param sourceVertex     the ID of the source vertex
-	 * @param jobConfiguration the generic OpenG configuration to use for this job
-	 * @param graphInputPath   the path to the input graph
+	 * @param platformConfig the platform configuration.
+	 * @param inputPath the path to the input graph.
 	 */
-	public SingleSourceShortestPathsJob(long sourceVertex, JobConfiguration jobConfiguration, String binaryPath,
-                                        String graphInputPath, String jobId) {
-		super(jobConfiguration, binaryPath, graphInputPath, jobId);
-		this.sourceVertex = sourceVertex;
+	public SingleSourceShortestPathsJob(BenchmarkRun benchmarkRun,
+										OpengConfiguration platformConfig,
+										String inputPath, String outputPath) {
+		super(benchmarkRun, platformConfig, inputPath, outputPath);
+
+		AlgorithmParameters parameters = benchmarkRun.getAlgorithmParameters();
+		this.sourceVertex = ((SingleSourceShortestPathsParameters)parameters).getSourceVertex();
 	}
 
 	@Override
-	protected void appendAlgorithmParameters(CommandLine commandLine) {
-		commandLine.addArgument("--root", false);
+	protected void appendAlgorithmParameters() {
+
+		commandLine.addArgument("--algorithm");
+		commandLine.addArgument("sssp");
+
+		commandLine.addArgument("--source-vertex", false);
 		commandLine.addArgument(String.valueOf(sourceVertex), false);
 	}
 
-	@Override
-	protected String getExecutableName() {
-		return "sssp";
-	}
 }

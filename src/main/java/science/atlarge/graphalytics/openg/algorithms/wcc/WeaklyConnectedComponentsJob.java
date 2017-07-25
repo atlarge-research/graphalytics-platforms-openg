@@ -15,36 +15,34 @@
  */
 package science.atlarge.graphalytics.openg.algorithms.wcc;
 
-import org.apache.commons.exec.CommandLine;
-
+import science.atlarge.graphalytics.domain.benchmark.BenchmarkRun;
 import science.atlarge.graphalytics.openg.OpengJob;
-import science.atlarge.graphalytics.openg.config.JobConfiguration;
+import science.atlarge.graphalytics.openg.OpengConfiguration;
 
 /**
- * Connected components job implementation for OpenG. This class is responsible for formatting CC-specific
- * arguments to be passed to the OpenG executable, and does not include the implementation of the algorithm.
+ * Weakly Connected Components job implementation for Openg. This class is responsible for formatting WCC-specific
+ * arguments to be passed to the platform executable, and does not include the implementation of the algorithm.
  *
- * @author Yong Guo
- * @author Tim Hegeman
+ * @author Wing Lung Ngai
  */
 public final class WeaklyConnectedComponentsJob extends OpengJob {
 
 	/**
 	 * Creates a new ConnectedComponentsJob object with all mandatory parameters specified.
 	 *
-	 * @param jobConfiguration the generic OpenG configuration to use for this job
-	 * @param graphInputPath   the path of the input graph
+	 * @param platformConfig the platform configuration.
+	 * @param inputPath the path to the input graph.
 	 */
-	public WeaklyConnectedComponentsJob(JobConfiguration jobConfiguration, String binaryPath, String graphInputPath, String jobId) {
-		super(jobConfiguration, binaryPath, graphInputPath, jobId);
+	public WeaklyConnectedComponentsJob(BenchmarkRun benchmarkRun, OpengConfiguration platformConfig,
+										String inputPath, String outputPath) {
+		super(benchmarkRun, platformConfig, inputPath, outputPath);
+
 	}
 
 	@Override
-	protected void appendAlgorithmParameters(CommandLine commandLine) {
+	protected void appendAlgorithmParameters() {
+		commandLine.addArgument("--algorithm");
+		commandLine.addArgument("wcc");
 	}
 
-	@Override
-	protected String getExecutableName() {
-		return "wcc";
-	}
 }

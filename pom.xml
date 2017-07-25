@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
@@ -7,24 +8,25 @@
     <version>0.2-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>Graphalytics Platform OpenG</name>
-
-    <scm>
-        <developerConnection>scm:git:git@github.com:atlarge-research/graphalytics-platforms-openg.git</developerConnection>
-        <url>https://github.com/atlarge-research/graphalytics-platforms-openg</url>
-    </scm>
-
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <platform.name>openg</platform.name>
 
         <graphalytics.version>0.9.0-SNAPSHOT</graphalytics.version>
         <commons.exec.version>1.3</commons.exec.version>
-        <platform.name>openg</platform.name>
         <fastutil.version>7.0.7</fastutil.version>
         <hamcrest.version>1.3</hamcrest.version>
         <junit.version>4.11</junit.version>
         <log4j.version>2.5</log4j.version>
     </properties>
+
+    <name>Graphalytics Platform OpenG</name>
+
+    <scm>
+        <developerConnection>scm:git:git@github.com:atlarge-research/graphalytics-platforms-openg.git
+        </developerConnection>
+        <url>https://github.com/atlarge-research/graphalytics-platforms-openg</url>
+    </scm>
 
 
     <dependencies>
@@ -55,6 +57,8 @@
             <version>${graphalytics.version}</version>
         </dependency>
 
+
+        <!-- Common software dependencies -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
@@ -71,12 +75,6 @@
             <version>${commons.exec.version}</version>
         </dependency>
         <dependency>
-            <groupId>it.unimi.dsi</groupId>
-            <artifactId>fastutil</artifactId>
-            <version>${fastutil.version}</version>
-        </dependency>
-
-        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
@@ -88,8 +86,12 @@
             <version>${hamcrest.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20160810</version>
+        </dependency>
     </dependencies>
-
 
     <profiles>
         <profile>
@@ -205,7 +207,7 @@
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>2.5.3</version>
                 <configuration>
-                    <finalName>graphalytics-${graphalytics.version}-${platform.name}-${project.version}</finalName>
+                    <finalName>graphalytics-${graphalytics.version}-openg-${project.version}</finalName>
                     <tarLongFileMode>posix</tarLongFileMode>
                     <outputDirectory>${project.basedir}</outputDirectory>
                 </configuration>
@@ -220,8 +222,7 @@
                             <descriptors>
                                 <descriptor>src/main/assembly/bin.xml</descriptor>
                             </descriptors>
-                            <finalName>graphalytics-${graphalytics.version}-${platform.name}-${project.version}
-                            </finalName>
+                            <finalName>graphalytics-${graphalytics.version}-openg-${project.version}</finalName>
                             <tarLongFileMode>posix</tarLongFileMode>
                             <outputDirectory>${project.basedir}</outputDirectory>
                         </configuration>
@@ -229,7 +230,7 @@
                 </executions>
             </plugin>
 
-            <plugin><!-- Plugin for ensuring the presence of license information -->
+            <plugin><!-- Plugin for license information -->
                 <groupId>com.mycila</groupId>
                 <artifactId>license-maven-plugin</artifactId>
                 <version>2.10</version>
@@ -266,18 +267,7 @@
                 </executions>
             </plugin>
 
-            <plugin><!-- Maven release management -->
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-release-plugin</artifactId>
-                <version>2.5.1</version>
-                <configuration>
-                    <tagNameFormat>v@{project.version}</tagNameFormat>
-                    <autoVersionSubmodules>true</autoVersionSubmodules>
-                    <pushChanges>false</pushChanges>
-                </configuration>
-            </plugin>
-
-            <plugin>
+            <plugin><!-- Plugin for version control management -->
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>buildnumber-maven-plugin</artifactId>
                 <version>1.3</version>
@@ -287,11 +277,22 @@
                         <goals>
                             <goal>create</goal>
                         </goals>
-                            <configuration>
+                        <configuration>
                             <doCheck>true</doCheck>
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+
+            <plugin><!-- Plugin for maven release management -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>2.5.1</version>
+                <configuration>
+                    <tagNameFormat>v@{project.version}</tagNameFormat>
+                    <autoVersionSubmodules>true</autoVersionSubmodules>
+                    <pushChanges>false</pushChanges>
+                </configuration>
             </plugin>
         </plugins>
 
@@ -317,4 +318,3 @@
         </repository>
     </repositories>
 </project>
-

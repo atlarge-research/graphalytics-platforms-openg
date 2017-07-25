@@ -15,164 +15,162 @@
  */
 package science.atlarge.graphalytics.openg;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import science.atlarge.graphalytics.domain.benchmark.BenchmarkRun;
+import science.atlarge.graphalytics.openg.OpengConfiguration;
 
+import org.apache.commons.exec.util.StringUtils;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.Executor;
-import org.apache.commons.exec.LogOutputStream;
 import org.apache.commons.exec.PumpStreamHandler;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.Marker;
-import org.apache.logging.log4j.MarkerManager;
+import java.io.IOException;
+import java.nio.file.Paths;
 
-import science.atlarge.graphalytics.openg.config.JobConfiguration;
 
 /**
- * Base class for all jobs in the OpenG benchmark suite. Configures and executes a OpenG job using the parameters
+ * Base class for all jobs in the platform driver. Configures and executes a platform job using the parameters
  * and executable specified by the subclass for a specific algorithm.
  *
- * @author Yong Guo
- * @author Tim Hegeman
+ * @author Wing Lung Ngai
  */
 public abstract class OpengJob {
 
 	private static final Logger LOG = LogManager.getLogger();
-	private static final Marker OPENG_OUTPUT_MARKER = MarkerManager.getMarker("OPENG-OUTPUT");
 
-	protected final JobConfiguration jobConfiguration;
-	private final String binaryPath;
-	private final String graphInputPath;
-	private String outputPath = null;
-	private String jobId;
+	protected CommandLine commandLine;
+    private final String jobId;
+	private final String logPath;
+	private final String inputPath;
+	private final String outputPath;
+
+	protected final OpengConfiguration platformConfig;
 
 	/**
-	 * Initializes the generic parameters required for running any OpenG job.
-	 *
-	 * @param jobConfiguration the generic OpenG configuration to use for this job
-	 * @param graphInputPath   the path of the input graph
+     * Initializes the platform job with its parameters.
+	 * @param benchmarkRun the benchmark run specification.
+	 * @param platformConfig the platform configuration.
+	 * @param inputPath the file path of the input graph dataset.
+	 * @param outputPath the file path of the output graph dataset.
 	 */
-	public OpengJob(JobConfiguration jobConfiguration, String binaryPath, String graphInputPath, String jobId) {
-		this.jobConfiguration = jobConfiguration;
-		this.binaryPath = binaryPath;
-		this.graphInputPath = graphInputPath;
-		this.jobId = jobId;
+	public OpengJob(BenchmarkRun benchmarkRun, OpengConfiguration platformConfig,
+		String inputPath, String outputPath) {
+
+		this.jobId = benchmarkRun.getId();
+		this.logPath = benchmarkRun.getLogDir().resolve("platform").toString();
+
+		this.inputPath = inputPath;
+		this.outputPath = outputPath;
+
+		this.platformConfig = platformConfig;
 	}
 
-	/**
-	 * Set the path to the file were the output of this job should be stored.
-	 *
-	 * @param path The path to the output file.
-	 */
-	public void setOutputPath(String path) {
-		this.outputPath = path;
-	}
 
 	/**
-	 * Executes the algorithm defined by this job, with the parameters defined by the user.
+	 * Executes the platform job with the pre-defined parameters.
 	 *
-	 * @return the exit code of OpenG
-	 * @throws IOException if OpenG failed to run
+	 * @return the exit code
+	 * @throws IOException if the platform failed to run
 	 */
-	public int execute() throws IOException {
-		CommandLine commandLine = createCommandLineForExecutable();
-		appendGraphPathParameters(commandLine);
-		appendThreadingParameters(commandLine);
-		appendAlgorithmParameters(commandLine);
-		appendOutputPathParameters(commandLine);
-		appendJobIdParameters(commandLine);
+	public int execute() throws Exception {
+		String executableDir = platformConfig.getExecutablePath();
+		commandLine = new CommandLine(Paths.get(executableDir).toFile());
 
-		LOG.info("Starting job with command line: {}", commandLine.toString());
+		// List of benchmark parameters.
+		String jobId = getJobId();
+		String logDir = getLogPath();
 
-		Executor executor = createCommandExecutor();
-		executor.setStreamHandler(new PumpStreamHandler(System.out));
+		// List of dataset parameters.
+		String inputPath = getInputPath();
+		String outputPath = getOutputPath();
+
+		// List of platform parameters.
+		int numMachines = platformConfig.getNumMachines();
+		int numThreads = platformConfig.getNumThreads();
+		String homeDir = platformConfig.getHomePath();
+
+		appendBenchmarkParameters(jobId, logDir);
+		appendAlgorithmParameters();
+		appendDatasetParameters(inputPath, outputPath);
+		appendPlatformConfigurations(homeDir, numMachines, numThreads);
+
+		String commandString = StringUtils.toString(commandLine.toStrings(), " ");
+		LOG.info(String.format("Execute benchmark job with command-line: [%s]", commandString));
+
+		Executor executor = new DefaultExecutor();
+		executor.setStreamHandler(new PumpStreamHandler(System.out, System.err));
 		executor.setExitValue(0);
 		return executor.execute(commandLine);
 	}
 
-	protected CommandLine createCommandLineForExecutable() {
-		Path executablePath = Paths.get(binaryPath, getExecutableName());
-		return new CommandLine(executablePath.toFile());
-	}
-
-	private Executor createCommandExecutor() {
-		DefaultExecutor executor = new DefaultExecutor();
-		executor.setStreamHandler(new PumpStreamHandler(
-				(LOG.isDebugEnabled() ? new JobOutLogger() : null),
-				(LOG.isInfoEnabled() ? new JobErrLogger() : null)
-		));
-		executor.setExitValues(null);
-		return executor;
-	}
-
-	private void appendGraphPathParameters(CommandLine commandLine) {
-		commandLine.addArgument("--dataset ", false);
-		commandLine.addArgument(Paths.get(graphInputPath).toString(), false);
-	}
-
-	private void appendOutputPathParameters(CommandLine commandLine) {
-		if (outputPath != null) {
-			commandLine.addArgument("--output ", false);
-			commandLine.addArgument(Paths.get(outputPath).toString(), false);
-		}
-	}
-
-	private void appendJobIdParameters(CommandLine commandLine) {
-		if (outputPath != null) {
-			commandLine.addArgument("--jobid ", false);
-			commandLine.addArgument(jobId, false);
-		}
-	}
-
-	private void appendThreadingParameters(CommandLine commandLine) {
-
-		if (jobConfiguration.getNumberOfWorkerThreads() > 0) {
-			commandLine.addArgument("--threadnum", false);
-			commandLine.addArgument(String.valueOf(jobConfiguration.getNumberOfWorkerThreads()), false);
-		} else {
-			commandLine.addArgument("--threadnum", false);
-			commandLine.addArgument("1", false);
-		}
-	}
 
 	/**
-	 * Appends the algorithm-specific parameters for the OpenG executable to a CommandLine object.
-	 *
-	 * @param commandLine the CommandLine to append arguments to
+	 * Appends the benchmark-specific parameters for the executable to a CommandLine object.
 	 */
-	protected abstract void appendAlgorithmParameters(CommandLine commandLine);
+	private void appendBenchmarkParameters(String jobId, String logPath) {
 
-	/**
-	 * @return the name of the algorithm-specific OpenG executable
-	 */
-	protected abstract String getExecutableName();
+		commandLine.addArgument("--job-id");
+		commandLine.addArgument(jobId);
 
-
-	/**
-	 * Helper class for logging standard output from OpenG to log4j.
-	 */
-	private static final class JobOutLogger extends LogOutputStream {
-
-		@Override
-		protected void processLine(String line, int logLevel) {
-			LOG.debug(OPENG_OUTPUT_MARKER, "[OPENG-OUT] {}", line);
-		}
+		commandLine.addArgument("--log-path");
+		commandLine.addArgument(logPath);
 
 	}
 
 	/**
-	 * Helper class for logging standard error from OpenG to log4j.
+	 * Appends the dataset-specific parameters for the executable to a CommandLine object.
 	 */
-	private static final class JobErrLogger extends LogOutputStream {
+	private void appendDatasetParameters(String inputPath, String outputPath) {
 
-		@Override
-		protected void processLine(String line, int logLevel) {
-			LOG.info(OPENG_OUTPUT_MARKER, "[OPENG-ERR] {}", line);
+		commandLine.addArgument("--input-path");
+		commandLine.addArgument(Paths.get(inputPath).toString());
+
+		commandLine.addArgument("--output-path");
+		commandLine.addArgument(Paths.get(outputPath).toString());
+
+	}
+
+
+	/**
+	 * Appends the platform-specific parameters for the executable to a CommandLine object.
+	 */
+	private void appendPlatformConfigurations(String homeDir, int numMachines, int numThreads) {
+
+		if(homeDir != null && !homeDir.trim().isEmpty()) {
+			commandLine.addArgument("--home-dir");
+			commandLine.addArgument(homeDir);
 		}
 
+		commandLine.addArgument("--num-machines");
+		commandLine.addArgument(String.valueOf(numMachines));
+
+		commandLine.addArgument("--num-threads");
+		commandLine.addArgument(String.valueOf(numThreads));
+
+	}
+
+
+	/**
+	 * Appends the algorithm-specific parameters for the executable to a CommandLine object.
+	 */
+	protected abstract void appendAlgorithmParameters();
+
+	private String getJobId() {
+		return jobId;
+	}
+
+	public String getLogPath() {
+		return logPath;
+	}
+
+	private String getInputPath() {
+		return inputPath;
+	}
+
+	private String getOutputPath() {
+		return outputPath;
 	}
 
 }

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Copyright 2015 Delft University of Technology
 #
@@ -21,7 +21,6 @@ if [ ! -f "$config/platform.properties" ]; then
 	exit 1
 fi
 
-
 # Set library jar
 export LIBRARY_JAR=`ls lib/graphalytics-*default*.jar`
 GRANULA_ENABLED=$(grep -E "^benchmark.run.granula.enabled[	 ]*[:=]" $config/granula.properties | sed 's/benchmark.run.granula.enabled[\t ]*[:=][\t ]*\([^\t ]*\).*/\1/g' | head -n 1)
@@ -34,13 +33,11 @@ if [ "$GRANULA_ENABLED" = "true" ] ; then
  fi
 fi
 
-
 # Construct the classpath
-OPENG_HOME=$(grep -E "^platform.openg.home[	 ]*[:=]" $config/platform.properties | sed 's/platform.openg.home[\t ]*[:=][\t ]*\([^\t ]*\).*/\1/g' | head -n 1)
-if [ -z $OPENG_HOME ]; then
-    echo "Error: home directory for OpenG not specified."
-    echo "Define the environment variable \$OPENG_HOME or modify platform.openg.home in $config/platform.properties"
+PLATFORM_HOME=$(grep -E "^platform.openg.home[	 ]*[:=]" $config/platform.properties | sed 's/platform.openg.home[\t ]*[:=][\t ]*\([^\t ]*\).*/\1/g' | head -n 1)
+if [ -z $PLATFORM_HOME ]; then
+    echo "Error: Openg home directory not specified."
+    echo "Define variable platform.openg.home in $config/platform.properties"
     exit 1
 fi
-
 
