@@ -15,7 +15,7 @@
  */
 package science.atlarge.graphalytics.openg.algorithms.wcc;
 
-import science.atlarge.graphalytics.domain.benchmark.BenchmarkRun;
+import science.atlarge.graphalytics.execution.RunSpecification;
 import science.atlarge.graphalytics.openg.OpengJob;
 import science.atlarge.graphalytics.openg.OpengConfiguration;
 
@@ -33,9 +33,9 @@ public final class WeaklyConnectedComponentsJob extends OpengJob {
 	 * @param platformConfig the platform configuration.
 	 * @param inputPath the path to the input graph.
 	 */
-	public WeaklyConnectedComponentsJob(BenchmarkRun benchmarkRun, OpengConfiguration platformConfig,
-										String inputPath, String outputPath) {
-		super(benchmarkRun, platformConfig, inputPath, outputPath);
+	public WeaklyConnectedComponentsJob(RunSpecification runSpecification, OpengConfiguration platformConfig,
+                                        String inputPath, String outputPath) {
+		super(runSpecification, platformConfig, inputPath, outputPath);
 
 	}
 

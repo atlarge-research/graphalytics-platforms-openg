@@ -17,7 +17,7 @@ package science.atlarge.graphalytics.openg.algorithms.pr;
 
 import science.atlarge.graphalytics.domain.algorithms.AlgorithmParameters;
 import science.atlarge.graphalytics.domain.algorithms.PageRankParameters;
-import science.atlarge.graphalytics.domain.benchmark.BenchmarkRun;
+import science.atlarge.graphalytics.execution.RunSpecification;
 import science.atlarge.graphalytics.openg.OpengJob;
 import science.atlarge.graphalytics.openg.OpengConfiguration;
 
@@ -38,11 +38,11 @@ public final class PageRankJob extends OpengJob {
 	 * @param platformConfig the platform configuration.
 	 * @param inputPath the path to the loaded graph.
 	 */
-	public PageRankJob(BenchmarkRun benchmarkRun, OpengConfiguration platformConfig,
-					   String inputPath, String outputPath) {
-		super(benchmarkRun, platformConfig, inputPath, outputPath);
+	public PageRankJob(RunSpecification runSpecification, OpengConfiguration platformConfig,
+                       String inputPath, String outputPath) {
+		super(runSpecification, platformConfig, inputPath, outputPath);
 
-		AlgorithmParameters parameters = benchmarkRun.getAlgorithmParameters();
+		AlgorithmParameters parameters = runSpecification.getBenchmarkRun().getAlgorithmParameters();
 		this.iteration = ((PageRankParameters)parameters).getNumberOfIterations();
 		this.dampingFactor = ((PageRankParameters)parameters).getDampingFactor();
 	}
