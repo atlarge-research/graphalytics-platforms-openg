@@ -24,6 +24,7 @@ import science.atlarge.granula.modeller.platform.Openg;
 import science.atlarge.graphalytics.domain.algorithms.Algorithm;
 import science.atlarge.graphalytics.domain.benchmark.BenchmarkRun;
 import science.atlarge.graphalytics.domain.graph.FormattedGraph;
+import science.atlarge.graphalytics.domain.graph.LoadedGraph;
 import science.atlarge.graphalytics.execution.BenchmarkRunner;
 import science.atlarge.graphalytics.execution.Platform;
 import science.atlarge.graphalytics.execution.PlatformExecutionException;
@@ -75,14 +76,17 @@ public class OpengPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public void loadGraph(FormattedGraph formattedGraph) throws Exception {
+	public LoadedGraph loadGraph(FormattedGraph formattedGraph) throws Exception {
 		OpengConfiguration platformConfig = OpengConfiguration.parsePropertiesFile();
 		loader = new OpengLoader(formattedGraph, platformConfig);
 
 		LOG.info("Loading graph " + formattedGraph.getName());
+
+		Path loadedPath = Paths.get("./intermediate").resolve(formattedGraph.getName());
+
 		try {
 
-			int exitCode = loader.load();
+			int exitCode = loader.load(loadedPath.toString());
 			if (exitCode != 0) {
 				throw new PlatformExecutionException("Openg exited with an error code: " + exitCode);
 			}
@@ -90,21 +94,21 @@ public class OpengPlatform implements GranulaAwarePlatform {
 			throw new PlatformExecutionException("Failed to load a Openg dataset.", e);
 		}
 		LOG.info("Loaded graph " + formattedGraph.getName());
+		return new LoadedGraph(formattedGraph, loadedPath.toString());
 	}
 
 	@Override
-	public void deleteGraph(FormattedGraph formattedGraph) throws Exception {
-		LOG.info("Unloading graph " + formattedGraph.getName());
+	public void deleteGraph(LoadedGraph loadedGraph) throws Exception {
+		LOG.info("Unloading graph " + loadedGraph.getFormattedGraph().getName());
 		try {
-
-			int exitCode = loader.unload();
+			int exitCode = loader.unload(loadedGraph.getInputFilePath());
 			if (exitCode != 0) {
 				throw new PlatformExecutionException("Openg exited with an error code: " + exitCode);
 			}
 		} catch (Exception e) {
 			throw new PlatformExecutionException("Failed to unload a Openg dataset.", e);
 		}
-		LOG.info("Unloaded graph " + formattedGraph.getName());
+		LOG.info("Unloaded graph " + loadedGraph.getFormattedGraph().getName());
 	}
 
 	@Override
@@ -123,7 +127,7 @@ public class OpengPlatform implements GranulaAwarePlatform {
 
 		Algorithm algorithm = benchmarkRun.getAlgorithm();
 		OpengConfiguration platformConfig = OpengConfiguration.parsePropertiesFile();
-		String inputPath = OpengLoader.getLoadedPath(benchmarkRun.getFormattedGraph());
+		String inputPath = benchmarkRun.getLoadedGraph().getInputFilePath();
 		String outputPath = benchmarkRun.getOutputDir().resolve(benchmarkRun.getName()).toAbsolutePath().toString();
 
 		OpengJob job;
