@@ -15,7 +15,7 @@
  */
 package science.atlarge.graphalytics.openg.algorithms.lcc;
 
-import science.atlarge.graphalytics.domain.benchmark.BenchmarkRun;
+import science.atlarge.graphalytics.execution.RunSpecification;
 import science.atlarge.graphalytics.openg.OpengJob;
 import science.atlarge.graphalytics.openg.OpengConfiguration;
 
@@ -33,9 +33,9 @@ public final class LocalClusteringCoefficientJob extends OpengJob {
 	 * @param platformConfig the platform configuration.
 	 * @param inputPath the path to the input graph.
 	 */
-	public LocalClusteringCoefficientJob(BenchmarkRun benchmarkRun, OpengConfiguration platformConfig,
-										 String inputPath, String outputPath) {
-		super(benchmarkRun, platformConfig, inputPath, outputPath);
+	public LocalClusteringCoefficientJob(RunSpecification runSpecification, OpengConfiguration platformConfig,
+                                         String inputPath, String outputPath) {
+		super(runSpecification, platformConfig, inputPath, outputPath);
 
 	}
 

@@ -23,35 +23,27 @@ import science.atlarge.granula.modeller.job.JobModel;
 import science.atlarge.granula.modeller.platform.Openg;
 import science.atlarge.graphalytics.domain.algorithms.Algorithm;
 import science.atlarge.graphalytics.domain.benchmark.BenchmarkRun;
+import science.atlarge.graphalytics.execution.BenchmarkRunSetup;
+import science.atlarge.graphalytics.execution.RunSpecification;
+import science.atlarge.graphalytics.execution.RuntimeSetup;
 import science.atlarge.graphalytics.domain.graph.FormattedGraph;
+import science.atlarge.graphalytics.domain.graph.LoadedGraph;
 import science.atlarge.graphalytics.execution.BenchmarkRunner;
-import science.atlarge.graphalytics.execution.Platform;
 import science.atlarge.graphalytics.execution.PlatformExecutionException;
 import science.atlarge.graphalytics.granula.GranulaAwarePlatform;
 import science.atlarge.graphalytics.report.result.BenchmarkMetrics;
 import science.atlarge.graphalytics.report.result.BenchmarkMetric;
-import science.atlarge.graphalytics.openg.OpengLoader;
 import science.atlarge.graphalytics.openg.algorithms.bfs.BreadthFirstSearchJob;
 import science.atlarge.graphalytics.openg.algorithms.cdlp.CommunityDetectionLPJob;
 import science.atlarge.graphalytics.openg.algorithms.lcc.LocalClusteringCoefficientJob;
 import science.atlarge.graphalytics.openg.algorithms.pr.PageRankJob;
 import science.atlarge.graphalytics.openg.algorithms.sssp.SingleSourceShortestPathsJob;
 import science.atlarge.graphalytics.openg.algorithms.wcc.WeaklyConnectedComponentsJob;
-import science.atlarge.graphalytics.openg.OpengConfiguration;
-import science.atlarge.graphalytics.openg.OpengCollector;
-import science.atlarge.graphalytics.openg.OpengCollector;
 import science.atlarge.graphalytics.report.result.BenchmarkRunResult;
-import science.atlarge.graphalytics.util.ProcessUtil;
 
 import java.nio.file.Paths;
 import java.nio.file.Path;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Openg platform driver for the Graphalytics benchmark.
@@ -75,14 +67,17 @@ public class OpengPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public void loadGraph(FormattedGraph formattedGraph) throws Exception {
+	public LoadedGraph loadGraph(FormattedGraph formattedGraph) throws Exception {
 		OpengConfiguration platformConfig = OpengConfiguration.parsePropertiesFile();
 		loader = new OpengLoader(formattedGraph, platformConfig);
 
 		LOG.info("Loading graph " + formattedGraph.getName());
+
+		Path loadedPath = Paths.get("./intermediate").resolve(formattedGraph.getName());
+
 		try {
 
-			int exitCode = loader.load();
+			int exitCode = loader.load(loadedPath.toString());
 			if (exitCode != 0) {
 				throw new PlatformExecutionException("Openg exited with an error code: " + exitCode);
 			}
@@ -90,61 +85,66 @@ public class OpengPlatform implements GranulaAwarePlatform {
 			throw new PlatformExecutionException("Failed to load a Openg dataset.", e);
 		}
 		LOG.info("Loaded graph " + formattedGraph.getName());
+		return new LoadedGraph(formattedGraph, loadedPath.toString());
 	}
 
 	@Override
-	public void deleteGraph(FormattedGraph formattedGraph) throws Exception {
-		LOG.info("Unloading graph " + formattedGraph.getName());
+	public void deleteGraph(LoadedGraph loadedGraph) throws Exception {
+		LOG.info("Unloading graph " + loadedGraph.getFormattedGraph().getName());
 		try {
-
-			int exitCode = loader.unload();
+			int exitCode = loader.unload(loadedGraph.getLoadedPath());
 			if (exitCode != 0) {
 				throw new PlatformExecutionException("Openg exited with an error code: " + exitCode);
 			}
 		} catch (Exception e) {
 			throw new PlatformExecutionException("Failed to unload a Openg dataset.", e);
 		}
-		LOG.info("Unloaded graph " + formattedGraph.getName());
+		LOG.info("Unloaded graph " + loadedGraph.getFormattedGraph().getName());
 	}
 
 	@Override
-	public void prepare(BenchmarkRun benchmarkRun) throws Exception {
+	public void prepare(RunSpecification runSpecification) throws Exception {
 
 	}
 
 	@Override
-	public void startup(BenchmarkRun benchmarkRun) throws Exception {
-		Path logDir = benchmarkRun.getLogDir().resolve("platform").resolve("runner.logs");
+	public void startup(RunSpecification runSpecification) throws Exception {
+		BenchmarkRunSetup benchmarkRunSetup = runSpecification.getBenchmarkRunSetup();
+		Path logDir = benchmarkRunSetup.getLogDir().resolve("platform").resolve("runner.logs");
 		OpengCollector.startPlatformLogging(logDir);
 	}
 
 	@Override
-	public void run(BenchmarkRun benchmarkRun) throws PlatformExecutionException {
+	public void run(RunSpecification runSpecification) throws PlatformExecutionException {
+
+		BenchmarkRun benchmarkRun = runSpecification.getBenchmarkRun();
+		BenchmarkRunSetup benchmarkRunSetup = runSpecification.getBenchmarkRunSetup();
+		RuntimeSetup runtimeSetup = runSpecification.getRuntimeSetup();
 
 		Algorithm algorithm = benchmarkRun.getAlgorithm();
 		OpengConfiguration platformConfig = OpengConfiguration.parsePropertiesFile();
-		String inputPath = OpengLoader.getLoadedPath(benchmarkRun.getFormattedGraph());
-		String outputPath = benchmarkRun.getOutputDir().resolve(benchmarkRun.getName()).toAbsolutePath().toString();
+		String inputPath = runtimeSetup.getLoadedGraph().getLoadedPath();
+		String outputPath = benchmarkRunSetup.getOutputDir().resolve(benchmarkRun.getName()).toAbsolutePath().toString();
 
 		OpengJob job;
 		switch (algorithm) {
 			case BFS:
-				job = new BreadthFirstSearchJob(benchmarkRun, platformConfig, inputPath, outputPath);
+				job = new BreadthFirstSearchJob(runSpecification, platformConfig, inputPath, outputPath);
 				break;
 			case CDLP:
-				job = new CommunityDetectionLPJob(benchmarkRun, platformConfig, inputPath, outputPath);
+				job = new CommunityDetectionLPJob(runSpecification, platformConfig, inputPath, outputPath);
 				break;
 			case LCC:
-				job = new LocalClusteringCoefficientJob(benchmarkRun, platformConfig, inputPath, outputPath);
+				job = new LocalClusteringCoefficientJob(runSpecification, platformConfig, inputPath, outputPath);
 				break;
 			case PR:
-				job = new PageRankJob(benchmarkRun, platformConfig, inputPath, outputPath);
+				job = new PageRankJob(runSpecification, platformConfig, inputPath, outputPath);
 				break;
 			case WCC:
-				job = new WeaklyConnectedComponentsJob(benchmarkRun, platformConfig, inputPath, outputPath);
+				job = new WeaklyConnectedComponentsJob(runSpecification, platformConfig, inputPath, outputPath);
 				break;
 			case SSSP:
-				job = new SingleSourceShortestPathsJob(benchmarkRun, platformConfig, inputPath, outputPath);
+				job = new SingleSourceShortestPathsJob(runSpecification, platformConfig, inputPath, outputPath);
 				break;
 			default:
 				throw new PlatformExecutionException("Failed to load algorithm implementation.");
@@ -171,10 +171,12 @@ public class OpengPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public BenchmarkMetrics finalize(BenchmarkRun benchmarkRun) throws Exception {
+	public BenchmarkMetrics finalize(RunSpecification runSpecification) throws Exception {
 		OpengCollector.stopPlatformLogging();
+		BenchmarkRunSetup benchmarkRunSetup = runSpecification.getBenchmarkRunSetup();
+		BenchmarkRun benchmarkRun = runSpecification.getBenchmarkRun();
 
-		Path logDir = benchmarkRun.getLogDir().resolve("platform");
+		Path logDir = benchmarkRunSetup.getLogDir().resolve("platform");
 
 		BenchmarkMetrics metrics = new BenchmarkMetrics();
 		metrics.setProcessingTime(OpengCollector.collectProcessingTime(logDir));
@@ -182,8 +184,8 @@ public class OpengPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public void terminate(BenchmarkRun benchmarkRun) throws Exception {
-		BenchmarkRunner.terminatePlatform(benchmarkRun);
+	public void terminate(RunSpecification runSpecification) throws Exception {
+		BenchmarkRunner.terminatePlatform(runSpecification);
 	}
 
 	@Override

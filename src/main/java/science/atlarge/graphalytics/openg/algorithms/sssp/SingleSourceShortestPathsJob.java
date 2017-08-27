@@ -17,7 +17,7 @@ package science.atlarge.graphalytics.openg.algorithms.sssp;
 
 import science.atlarge.graphalytics.domain.algorithms.AlgorithmParameters;
 import science.atlarge.graphalytics.domain.algorithms.SingleSourceShortestPathsParameters;
-import science.atlarge.graphalytics.domain.benchmark.BenchmarkRun;
+import science.atlarge.graphalytics.execution.RunSpecification;
 import science.atlarge.graphalytics.openg.OpengJob;
 import science.atlarge.graphalytics.openg.OpengConfiguration;
 
@@ -37,12 +37,12 @@ public final class SingleSourceShortestPathsJob extends OpengJob {
 	 * @param platformConfig the platform configuration.
 	 * @param inputPath the path to the input graph.
 	 */
-	public SingleSourceShortestPathsJob(BenchmarkRun benchmarkRun,
+	public SingleSourceShortestPathsJob(RunSpecification runSpecification,
 										OpengConfiguration platformConfig,
 										String inputPath, String outputPath) {
-		super(benchmarkRun, platformConfig, inputPath, outputPath);
+		super(runSpecification, platformConfig, inputPath, outputPath);
 
-		AlgorithmParameters parameters = benchmarkRun.getAlgorithmParameters();
+		AlgorithmParameters parameters = runSpecification.getBenchmarkRun().getAlgorithmParameters();
 		this.sourceVertex = ((SingleSourceShortestPathsParameters)parameters).getSourceVertex();
 	}
 

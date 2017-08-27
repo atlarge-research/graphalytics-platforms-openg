@@ -16,7 +16,8 @@
 package science.atlarge.graphalytics.openg;
 
 import science.atlarge.graphalytics.domain.benchmark.BenchmarkRun;
-import science.atlarge.graphalytics.openg.OpengConfiguration;
+import science.atlarge.graphalytics.execution.BenchmarkRunSetup;
+import science.atlarge.graphalytics.execution.RunSpecification;
 
 import org.apache.commons.exec.util.StringUtils;
 import org.apache.commons.exec.CommandLine;
@@ -50,16 +51,19 @@ public abstract class OpengJob {
 
 	/**
      * Initializes the platform job with its parameters.
-	 * @param benchmarkRun the benchmark run specification.
+	 * @param runSpecification the benchmark run specification.
 	 * @param platformConfig the platform configuration.
 	 * @param inputPath the file path of the input graph dataset.
 	 * @param outputPath the file path of the output graph dataset.
 	 */
-	public OpengJob(BenchmarkRun benchmarkRun, OpengConfiguration platformConfig,
-		String inputPath, String outputPath) {
+	public OpengJob(RunSpecification runSpecification, OpengConfiguration platformConfig,
+                    String inputPath, String outputPath) {
+
+		BenchmarkRunSetup benchmarkRunSetup = runSpecification.getBenchmarkRunSetup();
+		BenchmarkRun benchmarkRun = runSpecification.getBenchmarkRun();
 
 		this.jobId = benchmarkRun.getId();
-		this.logPath = benchmarkRun.getLogDir().resolve("platform").toString();
+		this.logPath = benchmarkRunSetup.getLogDir().resolve("platform").toString();
 
 		this.inputPath = inputPath;
 		this.outputPath = outputPath;

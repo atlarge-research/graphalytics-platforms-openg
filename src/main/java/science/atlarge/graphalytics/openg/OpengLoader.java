@@ -60,7 +60,7 @@ public class OpengLoader {
 		this.platformConfig = platformConfig;
 	}
 
-	public int load() throws Exception {
+	public int load(String loadedInputPath) throws Exception {
 		String loaderDir = platformConfig.getLoaderPath();
 		commandLine = new CommandLine(Paths.get(loaderDir).toFile());
 
@@ -71,7 +71,7 @@ public class OpengLoader {
 		commandLine.addArgument("--input-edge-path");
 		commandLine.addArgument(formattedGraph.getEdgeFilePath());
 		commandLine.addArgument("--output-path");
-		commandLine.addArgument(getLoadedPath(formattedGraph).toString());
+		commandLine.addArgument(loadedInputPath);
 		commandLine.addArgument("--directed");
 		commandLine.addArgument(formattedGraph.isDirected() ? "true" : "false");
 		commandLine.addArgument("--weighted");
@@ -88,7 +88,7 @@ public class OpengLoader {
 		return executor.execute(commandLine);
 	}
 
-	public int unload() throws Exception {
+	public int unload(String loadedInputPath) throws Exception {
 		String unloaderDir = platformConfig.getUnloaderPath();
 		commandLine = new CommandLine(Paths.get(unloaderDir).toFile());
 
@@ -96,7 +96,7 @@ public class OpengLoader {
 		commandLine.addArgument(formattedGraph.getName());
 
 		commandLine.addArgument("--output-path");
-		commandLine.addArgument(getLoadedPath(formattedGraph).toString());
+		commandLine.addArgument(loadedInputPath);
 
 		String commandString = StringUtils.toString(commandLine.toStrings(), " ");
 		LOG.info(String.format("Execute graph unloader with command-line: [%s]", commandString));
@@ -108,9 +108,5 @@ public class OpengLoader {
 		return executor.execute(commandLine);
 	}
 
-	public static String getLoadedPath(FormattedGraph formattedGraph) {
-		Path intermediatePath = Paths.get("./intermediate").resolve(formattedGraph.getName());
-		return intermediatePath.toAbsolutePath().toString();
-	}
 
 }
