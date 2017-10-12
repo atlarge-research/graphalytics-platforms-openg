@@ -6,9 +6,9 @@
 
 Please refer to the documentation of the Graphalytics core (`graphalytics` repository) for an introduction to using Graphalytics.
 
-The following dependencies are required for this platform extension (in parentheses are the tested versions):
+The following dependencies are required for this platform extension:
 
-* [GraphBIG](https://github.com/graphbig/graphBIG/) (commit 318744c)
+* [GraphBIG](https://github.com/graphbig/graphBIG/) **(checkout the graphalytics branch)**
 
 
 Download [GraphBIG](https://github.com/graphbig/graphBIG/) and unpack into any directory. Modify `platform.openg.home` in `config/platform.properties` to point to this directory or set the environment variable `OPENG_HOME` to this directory.
